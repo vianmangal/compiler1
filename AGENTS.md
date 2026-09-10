@@ -2,22 +2,19 @@
 
 ## Project
 
-**LoopLift**
+**IRis**
 
-LoopLift is a deliberately scoped answer to Segfault **P05: Automatic Parallelizing Compiler for GPGPU with Interprocedural Analysis**. It analyzes C loops that call helper functions, follows those calls to determine whether the helpers introduce side effects, and—when the supported loop is safe and worthwhile—emits C with an OpenMP GPU-offload directive plus an explanation of the decision.
+IRis is a small explainable-compiler tool for the Segfault hackathon's **P01: LLVM Pass Transformation Analyzer** problem statement. It accepts a C program, asks Clang to expose the LLVM optimization pipeline, and turns the resulting IR snapshots into a readable transformation timeline for students, faculty, and developers learning why optimized code changes.
 
-The project supports a clear subset of C rather than pretending to parallelize arbitrary programs. That makes the compiler analysis real, the demo understandable, and the implementation achievable for a student hackathon team.
-
-**Core Value:** LoopLift automatically decides whether a supported loop remains safe to parallelize across helper-function calls and explains the evidence behind that decision.
+**Core Value:** A user can run one command and clearly see which LLVM passes changed their program's IR.
 
 ### Constraints
 
-- **Complexity**: Use a narrow, documented C subset and conservative rejection rules.
-- **Toolchain**: Use `clang -Xclang -ast-dump=json -fsyntax-only` as the analysis frontend.
-- **Stack**: Python 3.10+ standard library for the analyzer and tests.
-- **Safety**: Unknown calls, ambiguous pointer writes, global mutation, and unsupported control flow must reject a loop rather than guess.
-- **Code generation**: Emit OpenMP `target teams distribute parallel for`, not handwritten CUDA.
-- **Delivery**: Phase 1 ends with a usable CLI analyzer, JSON/Markdown reports, examples, and tests.
+- **Complexity**: Keep the architecture understandable to a student team — avoid services, databases, accounts, and distributed components.
+- **Toolchain**: Use the installed Clang first — do not require Homebrew LLVM for the MVP.
+- **Stack**: Python standard library for Phase 1 — setup should remain small and offline-friendly.
+- **Scope**: Optimize for a convincing small-program demo, not exhaustive LLVM coverage.
+- **Delivery**: Phase 1 must be a working vertical CLI slice with automated tests.
 
 <!-- GSD:project-end -->
 
