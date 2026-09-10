@@ -14,7 +14,6 @@ LoopLift proves the most important compiler claim first: safe interprocedural re
 
 ### Phase 1: Interprocedural Safety Analyzer
 **Goal:** Users can analyze a C file and receive a conservative, explainable parallelization decision for every discovered loop, including hazards reached through helper-function calls.
-**Mode:** mvp
 **Depends on:** Nothing (first phase)
 **Requirements:** INPT-01, INPT-02, INPT-03, INPT-04, ANLY-01, ANLY-02, ANLY-03, ANLY-04, ANLY-05, CLSF-01, CLSF-02, CLSF-03, RPRT-01, RPRT-02, QUAL-01
 **Success Criteria** (what must be TRUE):
