@@ -1,12 +1,14 @@
-# IRis
+# LoopLift
 
 ## What This Is
 
-IRis is a small explainable-compiler tool for the Segfault hackathon's **P01: LLVM Pass Transformation Analyzer** problem statement. It accepts a C program, asks Clang to expose the LLVM optimization pipeline, and turns the resulting IR snapshots into a readable transformation timeline for students, faculty, and developers learning why optimized code changes.
+LoopLift is a deliberately scoped answer to Segfault **P05: Automatic Parallelizing Compiler for GPGPU with Interprocedural Analysis**. It analyzes C loops that call helper functions, follows those calls to determine whether the helpers introduce side effects, and—when the supported loop is safe and worthwhile—emits C with an OpenMP GPU-offload directive plus an explanation of the decision.
+
+The project supports a clear subset of C rather than pretending to parallelize arbitrary programs. That makes the compiler analysis real, the demo understandable, and the implementation achievable for a student hackathon team.
 
 ## Core Value
 
-A user can run one command and clearly see which LLVM passes changed their program's IR.
+LoopLift automatically decides whether a supported loop remains safe to parallelize across helper-function calls and explains the evidence behind that decision.
 
 ## Requirements
 
@@ -16,45 +18,49 @@ A user can run one command and clearly see which LLVM passes changed their progr
 
 ### Active
 
-- [ ] Analyze a local C source file using the installed Clang toolchain.
-- [ ] Capture and retain the LLVM IR snapshots that actually change during optimization.
-- [ ] Produce a deterministic report that a user can inspect without knowing LLVM internals.
-- [ ] Explain common transformations with simple descriptions and change metrics.
-- [ ] Offer a lightweight visual timeline suitable for a short hackathon demo.
+- [ ] Parse real Clang AST output for local C source files.
+- [ ] Discover loops, functions, call relationships, and cross-function side effects.
+- [ ] Conservatively label supported loops safe or unsafe with concrete reasons.
+- [ ] Transform safe loops into OpenMP target-offload candidates without changing rejected loops.
+- [ ] Avoid offloading obviously unprofitable loops using a small deterministic heuristic.
+- [ ] Produce an explainable report and validation-oriented hackathon demo.
 
 ### Out of Scope
 
-- AI/ML-based optimization prediction — adds data, training, and evaluation complexity without helping the core demo.
-- GPU compilation, OpenCL debugging, or automatic parallelization — requires specialized hardware and substantially more compiler infrastructure.
-- A custom compiler, optimizer, or LLVM pass — IRis observes LLVM; it does not replace LLVM.
-- Production-scale or untrusted-code sandboxing — v1 is a local educational tool for small examples.
-- Supporting languages other than C — one dependable input path is enough for the hackathon MVP.
+- Full ISO C support — the MVP handles a documented canonical-loop subset.
+- CUDA kernel generation or a custom GPU backend — OpenMP target directives keep code generation small and portable.
+- Advanced pointer/alias analysis — ambiguous memory access is rejected conservatively.
+- ML-based profitability prediction — would require a trustworthy dataset and distract from compiler analysis.
+- Guaranteed GPU execution on the development Mac — generated offload code can be inspected and compile-checked where a compatible OpenMP toolchain is available.
+- Whole-program optimization across separate translation units — v1 analyzes one C source file.
 
 ## Context
 
 - The project is for Segfault, a compiler-focused hackathon.
-- The submitted problem list includes LLVM pass analysis, AI compiler stacks, optimization cost models, GPU profitability, automatic GPGPU parallelization, and OpenCL debugging.
-- P01 is selected because it has the smallest dependency surface, produces a visual and technically authentic demo, and can be explained to faculty without requiring GPU or ML expertise.
-- Apple Clang 21 is already present locally and supports LLVM pass-manager diagnostics and IR dumps.
-- The workspace is a new Git repository with no existing application constraints.
+- P05 is more ambitious and distinctive than the previously considered P01 pass viewer.
+- The user wants a project that is impressive but still straightforward enough to explain to faculty.
+- Apple Clang 21 is installed and can emit its AST as JSON, allowing real compiler parsing without linking LLVM libraries.
+- Phase 1 intentionally proves the hardest claim first: interprocedural safety analysis. Automatic source transformation follows only after the analyzer is trustworthy.
 
 ## Constraints
 
-- **Complexity**: Keep the architecture understandable to a student team — avoid services, databases, accounts, and distributed components.
-- **Toolchain**: Use the installed Clang first — do not require Homebrew LLVM for the MVP.
-- **Stack**: Python standard library for Phase 1 — setup should remain small and offline-friendly.
-- **Scope**: Optimize for a convincing small-program demo, not exhaustive LLVM coverage.
-- **Delivery**: Phase 1 must be a working vertical CLI slice with automated tests.
+- **Complexity**: Use a narrow, documented C subset and conservative rejection rules.
+- **Toolchain**: Use `clang -Xclang -ast-dump=json -fsyntax-only` as the analysis frontend.
+- **Stack**: Python 3.10+ standard library for the analyzer and tests.
+- **Safety**: Unknown calls, ambiguous pointer writes, global mutation, and unsupported control flow must reject a loop rather than guess.
+- **Code generation**: Emit OpenMP `target teams distribute parallel for`, not handwritten CUDA.
+- **Delivery**: Phase 1 ends with a usable CLI analyzer, JSON/Markdown reports, examples, and tests.
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Choose P01: LLVM Pass Transformation Analyzer | Lowest implementation risk while remaining a real compiler project | — Pending |
-| Name the project IRis | Short, memorable, and communicates making IR visible | — Pending |
-| Use Clang's pass dump output rather than requiring `opt` | Works with the toolchain already installed on macOS | — Pending |
-| Build a CLI before a browser UI | Proves the compiler pipeline early and keeps Phase 1 small | — Pending |
-| Compare consecutive snapshots within the same IR scope | Avoids claiming a change when dumps refer to different functions/modules | — Pending |
+| Select P05 with a supported-subset scope | More hackathon depth than P01 without attempting an industrial compiler | — Pending |
+| Name the project LoopLift | Communicates lifting serial loops into parallel execution | — Pending |
+| Use Clang JSON AST | Real compiler structure is more defensible than regex parsing and is available locally | — Pending |
+| Make analysis conservative | False negatives are acceptable; unsafe automatic parallelization is not | — Pending |
+| Summarize helper effects transitively | Demonstrates genuine interprocedural reasoning across call chains | — Pending |
+| Generate OpenMP target directives | Represents GPGPU offload with much less backend complexity than CUDA generation | — Pending |
 
 ## Evolution
 
@@ -74,4 +80,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-10 after initialization*
+*Last updated: 2026-09-10 after the P05 scope pivot*
