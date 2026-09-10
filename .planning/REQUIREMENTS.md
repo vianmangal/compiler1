@@ -56,12 +56,26 @@
 
 ## Traceability
 
-Roadmap creation will map each v1 requirement to exactly one phase.
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| INPUT-01 | Phase 1 | Pending |
+| INPUT-02 | Phase 1 | Pending |
+| INPUT-03 | Phase 1 | Pending |
+| CAPT-01 | Phase 1 | Pending |
+| CAPT-02 | Phase 1 | Pending |
+| CAPT-03 | Phase 1 | Pending |
+| CAPT-04 | Phase 1 | Pending |
+| RPRT-01 | Phase 1 | Pending |
+| RPRT-02 | Phase 1 | Pending |
+| RPRT-03 | Phase 1 | Pending |
+| RPRT-04 | Phase 1 | Pending |
+| QUAL-01 | Phase 1 | Pending |
+| QUAL-02 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13 ⚠️
+- Mapped to phases: 13
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-10*
