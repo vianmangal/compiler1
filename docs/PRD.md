@@ -1,114 +1,126 @@
-# Product Requirements Document: IRis
+# Product Requirements Document: LoopLift
 
 **Hackathon:** Segfault  
-**Selected statement:** P01 — LLVM Pass Transformation Analyzer  
-**Theme:** Explainable compilers  
+**Selected statement:** P05 — Automatic Parallelizing Compiler for GPGPU with Interprocedural Analysis  
+**Project scope:** P05-lite: conservative source-to-source compiler for a documented C subset  
 **Status:** Approved for implementation  
 **Date:** 2026-09-10
 
-## 1. Why This Problem
+## 1. Why P05
 
-IRis uses P01 because it is the clearest balance of technical credibility, low complexity, and demo value.
+P01 was feasible but risked looking like a visualization wrapper around compiler output. P05 gives the project a stronger compiler contribution: LoopLift must reason about loops, function calls, side effects, data independence, and code transformation.
 
-| Candidate | Complexity | Extra infrastructure | Demo clarity | Decision |
-|-----------|------------|----------------------|--------------|----------|
-| P01 LLVM pass analyzer | Low–medium | Clang only | Very high | **Selected** |
-| P02 AI compiler explorer | High | Multiple IR frameworks | Medium | Too broad |
-| P03 optimization cost model | High | Benchmarks and ML/data | Medium | Too research-heavy |
-| P04 GPU profitability predictor | High | GPU and performance dataset | Medium | Hardware-dependent |
-| P05 automatic GPGPU compiler | Very high | Compiler analysis and GPU backend | Low for available time | Too complex |
-| P06 OpenCL debugger | Very high | GPU ISA/debugger integration | High if complete | Too risky |
-
-P01 also has a simple story for judges: “Here is the C code, here is LLVM IR before optimization, and here are only the passes that changed it.”
+The full research problem is too large for a hackathon, so LoopLift makes the supported language boundary explicit. It only transforms canonical loops for which it can establish safety; every other loop is preserved and receives a rejection explanation. This is both achievable and technically honest.
 
 ## 2. Product Summary
 
-IRis is a local educational analyzer that turns verbose LLVM pass dumps into a compact timeline. A user points it at a small C file; IRis invokes Clang, extracts pass snapshots, removes unchanged repetitions, and creates a report containing the transformation order and saved IR.
+LoopLift accepts one C source file, invokes Clang to obtain a JSON AST, and builds a small interprocedural program model. It discovers `for` loops, follows helper-function calls, summarizes observable side effects, and classifies each loop as a parallelization candidate or a conservative rejection. Later phases add an OpenMP GPU-offload rewrite, a profitability gate, and a polished explainability report.
 
-## 3. Users
+## 3. Target Users
 
-- Students learning compiler optimization.
-- Faculty reviewing a technically sound but easy-to-follow project.
-- Hackathon judges who need to understand the value in a short demo.
-- Developers debugging why an optimization pipeline changed a small function.
+- Students learning compiler dependence and side-effect analysis.
+- Faculty evaluating a clear compiler pipeline with inspectable rules.
+- Hackathon judges looking for a technically meaningful transformation demo.
+- Developers experimenting with simple data-parallel C kernels.
 
-## 4. User Story
+## 4. Main User Story
 
-As a student, I want to run an analyzer on a C program and see the LLVM passes that actually changed its IR, so I can understand optimization without reading a huge compiler debug log.
+As a C developer, I want the compiler to inspect loops that call helper functions and tell me whether they can be GPU-parallelized, so I do not have to reason manually about every transitive side effect.
 
-## 5. Primary Flow
+## 5. Supported Input Subset
 
-1. The user selects a `.c` source file.
-2. The user runs `iris analyze examples/loop.c`.
-3. IRis checks Clang availability and compiles the source through an optimization pipeline.
-4. IRis parses pass snapshots and keeps meaningful changes.
-5. IRis writes a report directory with a manifest, timeline, and `.ll` snapshots.
-6. The terminal prints a short summary and where to inspect the report.
+The first release targets single-file C programs containing canonical `for` loops such as `for (int i = 0; i < n; i++)` and helper functions defined in the same file.
 
-## 6. Functional Requirements
+The safety analyzer may approve a loop when:
 
-### Phase 1 — Working CLI MVP
+- Its body has no `break`, `goto`, or `return`.
+- Scalar state shared between iterations is not mutated.
+- Array writes are indexed by the loop induction variable.
+- Called helpers are defined locally and their transitive callees are side-effect safe.
+- Helpers do not mutate globals, perform ambiguous pointer writes, or call unknown impure functions.
 
-- Accept one existing C source path and an optional report directory.
-- Discover a compatible `clang` executable or accept an explicit override.
-- Run Clang at `-O1` with LLVM pass-manager IR dumps enabled.
-- Parse pass name, IR scope, order, and IR body from the compiler output.
-- Suppress consecutive unchanged dumps for the same scope.
-- Save a JSON manifest, Markdown timeline, and numbered LLVM IR snapshots.
-- Return clear non-zero errors for invalid input, missing Clang, and compilation failure.
-- Include a small example and automated unit/integration tests.
+Anything outside this subset is rejected with one or more reason codes; it is never silently transformed.
 
-### Phase 2 — Explanations and Comparisons
+## 6. Product Flow
 
-- Show added/removed line counts between adjacent comparable snapshots.
-- Attach plain-English descriptions to common passes.
-- Generate unified diffs for selected transformations.
-- Allow basic filtering by function or pass name.
+1. User runs `looplift analyze examples/safe_map.c`.
+2. LoopLift validates the source and Clang executable.
+3. Clang produces a JSON AST without running the program.
+4. LoopLift builds function summaries and a call graph.
+5. Each discovered loop is evaluated using local and transitive evidence.
+6. A terminal summary plus JSON and Markdown reports identify safe and rejected loops.
+7. In Phase 2, `looplift transform` inserts an OpenMP target directive only for approved loops.
 
-### Phase 3 — Visual Demo
+## 7. Functional Requirements
 
-- Provide a lightweight local web page showing the transformation timeline.
-- Show side-by-side IR and highlighted changes for a selected pass.
-- Export or open an existing CLI report without rerunning Clang.
+### Phase 1 — Interprocedural Safety Analyzer
 
-## 7. Non-Functional Requirements
+- Accept one existing `.c` source file and an optional Clang override.
+- Parse real Clang JSON AST output without third-party parser dependencies.
+- Discover defined functions, their direct callees, and all `for` loops.
+- Summarize global mutation, pointer-parameter mutation risk, unknown/external calls, and unsupported control flow.
+- Propagate unsafety through the local call graph, including recursion/cycles.
+- Recognize a narrow canonical induction-variable pattern.
+- Classify each loop as `safe`, `unsafe`, or `unsupported` with stable reason codes and human-readable evidence.
+- Emit `analysis.json`, `report.md`, and a concise terminal summary.
+- Provide safe, unsafe, and transitive-call examples plus automated tests.
 
-- Phase 1 uses only Python's standard library at runtime.
-- A normal small C example should finish in under 10 seconds on the development machine.
-- Reports are deterministic apart from toolchain-provided target metadata.
-- Compiler commands are executed without a shell and never interpolate source text into a command string.
-- The codebase remains small enough to explain module-by-module during evaluation.
+### Phase 2 — Automatic GPGPU-Oriented Transformation
 
-## 8. Out of Scope
+- Add `looplift transform` for approved loops.
+- Insert `#pragma omp target teams distribute parallel for` immediately before each approved loop.
+- Preserve all other source text and never modify rejected loops.
+- Produce a transformed `.c` file and a transformation manifest.
+- Support dry-run output for demonstration and review.
 
-- Running submitted programs or evaluating their runtime behavior.
-- Compiling untrusted source on a public server.
-- Reimplementing LLVM optimization passes.
-- ML-generated explanations or optimization recommendations.
-- GPU, CUDA, OpenCL, MLIR, or multi-language input in v1.
-- Authentication, cloud storage, collaboration, or project accounts.
+### Phase 3 — Profitability, Validation, and Demo
 
-## 9. Success Measures
+- Reject clearly tiny/unknown-trip loops unless the user explicitly overrides the profitability gate.
+- Estimate loop work using simple operation and call counts rather than ML.
+- Compile-check transformed output when a compatible OpenMP toolchain is available.
+- Produce a self-contained HTML explanation view from an existing analysis report.
+- Include a pre-generated example so the core demo remains viewable without a GPU.
 
-- The provided example produces at least two retained transformation snapshots on the local Clang toolchain.
-- A first-time user can generate and find the report from the README instructions.
-- Automated tests cover parsing, unchanged-snapshot filtering, report writing, CLI validation, and one real Clang smoke path when available.
-- The demo can be explained in under three minutes: input → LLVM pipeline → transformation timeline.
+## 8. Non-Functional Requirements
 
-## 10. Risks and Mitigations
+- Python standard library only at runtime.
+- Analysis of supplied examples completes in under 10 seconds on the development machine.
+- Subprocesses are invoked as argument arrays without a shell.
+- Results are deterministic for a fixed source file and Clang version.
+- Every non-approved loop has at least one explicit reason.
+- The implementation is modular enough to explain as frontend → model → analysis → report → rewrite.
+
+## 9. Non-Goals
+
+- Proving safety for arbitrary pointer arithmetic, macros, function pointers, or complex aliasing.
+- Generating CUDA, HIP, or SPIR-V directly.
+- Training a performance model.
+- Running untrusted code in a public service.
+- Claiming speedup without suitable GPU hardware and a reproducible benchmark.
+- Replacing production LLVM dependence analysis.
+
+## 10. Success Metrics
+
+- Phase 1 identifies at least one safe loop and three different rejection cases in the included examples.
+- A transitive unsafe helper (`loop → helper A → helper B → global write`) causes the loop to be rejected with a visible call-chain explanation.
+- Phase 2 transforms only the approved example and leaves rejected examples unchanged.
+- The full project can be demonstrated in under four minutes: analyze → explain → transform → inspect.
+
+## 11. Risks and Mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| LLVM dump formatting differs between Clang versions | Keep parsing isolated, tolerate banner variants, and test against fixtures plus local Clang |
-| Pass output is extremely large | Retain only changed snapshots and support a maximum snapshot count |
-| Function and module dumps are compared incorrectly | Track previous IR independently for each scope |
-| A judge lacks Clang | Document the dependency and include a pre-generated example report in a later phase |
-| UI consumes hackathon time | Finish and verify the CLI before beginning the web viewer |
+| Clang AST shape varies | Isolate AST traversal, avoid depending on irrelevant nodes, and maintain fixture tests |
+| Analysis overclaims safety | Default to rejection for unknown calls, cycles, pointers, and unsupported constructs |
+| Source rewriting corrupts formatting | Phase 2 inserts text only at Clang-provided source offsets and compile-checks output |
+| GPGPU claim cannot be demonstrated on macOS | Generate standard OpenMP target code and include inspectable artifacts; validate on a compatible environment when available |
+| Scope expands toward a full compiler | Keep the supported subset and reason-code list explicit in docs and tests |
 
-## 11. Definition of Done for Phase 1
+## 12. Phase 1 Definition of Done
 
-- `python -m iris_analyzer analyze examples/loop.c` succeeds with local Clang.
-- The command creates `manifest.json`, `timeline.md`, and at least two `.ll` snapshot files.
-- Invalid source and compiler failures have readable messages and non-zero exit codes.
-- The test suite passes from a clean checkout.
-- README documents installation, command usage, output structure, and the project boundary.
+- `python -m looplift analyze examples/safe_map.c` succeeds with local Clang.
+- Output lists functions, call edges, loops, classifications, and reason evidence.
+- Safe, direct-unsafe, and transitively unsafe examples behave as documented.
+- `analysis.json` and `report.md` are generated.
+- Missing source, invalid C, and missing Clang return readable non-zero errors.
+- Automated tests pass using both AST fixtures and a conditional real-Clang integration test.
