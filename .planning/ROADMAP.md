@@ -14,7 +14,6 @@ IRis progresses from a complete command-line analyzer that proves the core expla
 
 ### Phase 1: CLI Transformation Pipeline
 **Goal**: Users can run one command to convert a local C file into a trustworthy timeline of the LLVM passes that changed its IR.
-**Mode:** mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: INPUT-01, INPUT-02, INPUT-03, CAPT-01, CAPT-02, CAPT-03, CAPT-04, RPRT-01, RPRT-02, RPRT-03, RPRT-04, QUAL-01, QUAL-02
 **Success Criteria** (what must be TRUE):
