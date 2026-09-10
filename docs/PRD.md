@@ -1,9 +1,12 @@
 # Product Requirements Document: LoopLift
 
-**Hackathon:** Segfault  
-**Selected statement:** P05 — Automatic Parallelizing Compiler for GPGPU with Interprocedural Analysis  
-**Project scope:** P05-lite: conservative source-to-source compiler for a documented C subset  
-**Status:** Approved for implementation  
+**Hackathon:** Segfault
+
+**Selected statement:** P05 — Automatic Parallelizing Compiler for GPGPU with Interprocedural Analysis
+
+**Project scope:** P05-lite: conservative source-to-source compiler for a documented C subset
+
+**Status:** Approved for implementation
 **Date:** 2026-09-10
 
 ## 1. Why P05
