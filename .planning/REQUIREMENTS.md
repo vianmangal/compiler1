@@ -1,101 +1,82 @@
-# Requirements: LoopLift
+# Requirements: IRis
 
 **Defined:** 2026-09-10  
-**Core Value:** LoopLift automatically decides whether a supported loop remains safe to parallelize across helper-function calls and explains the evidence behind that decision.
+**Core Value:** A user can run one command and clearly see which LLVM passes changed their program's IR.
 
 ## v1 Requirements
 
-### Input and Frontend
+### Input and Toolchain
 
-- [ ] **INPT-01**: User can analyze one existing `.c` source file from the command line.
-- [ ] **INPT-02**: User can override the Clang executable used to produce the AST.
-- [ ] **INPT-03**: User receives a clear non-zero error for an invalid path, non-C input, missing Clang, or invalid C program.
-- [ ] **INPT-04**: User's source is parsed through Clang's JSON AST without executing the compiled program.
+- [ ] **INPUT-01**: User can analyze one existing C source file from the command line.
+- [ ] **INPUT-02**: User receives a clear error when the source path, extension, or Clang toolchain is invalid.
+- [ ] **INPUT-03**: User can override the Clang executable used for analysis.
 
-### Interprocedural Analysis
+### Transformation Capture
 
-- [ ] **ANLY-01**: User can see locally defined functions and direct call-graph edges.
-- [ ] **ANLY-02**: User can see every discovered `for` loop with its containing function and source line.
-- [ ] **ANLY-03**: User can see direct function-effect summaries for global writes, pointer mutation risk, unknown calls, and unsupported control flow.
-- [ ] **ANLY-04**: User can see transitive unsafety propagated through locally defined helper calls, including a call-chain explanation.
-- [ ] **ANLY-05**: User receives a conservative result for recursive call cycles rather than an unbounded analysis or unsafe approval.
+- [ ] **CAPT-01**: User can run the source through Clang's LLVM `-O1` optimization pipeline.
+- [ ] **CAPT-02**: User can see the ordered pass name, IR scope, and IR body for captured dumps.
+- [ ] **CAPT-03**: User sees only changed consecutive snapshots within each IR scope.
+- [ ] **CAPT-04**: User can cap the number of retained snapshots for predictable report size.
 
-### Classification and Reporting
+### Reporting
 
-- [ ] **CLSF-01**: User can see whether each loop is `safe`, `unsafe`, or `unsupported` for automatic parallelization.
-- [ ] **CLSF-02**: User can see stable reason codes and human-readable evidence for every non-safe decision.
-- [ ] **CLSF-03**: User only receives a `safe` decision for a documented canonical loop with no detected cross-iteration or transitive side-effect hazard.
-- [ ] **RPRT-01**: User receives `analysis.json` containing functions, calls, loops, effects, decisions, and tool metadata.
-- [ ] **RPRT-02**: User receives `report.md` and a concise terminal summary suitable for a faculty demo.
-- [ ] **QUAL-01**: Maintainer can verify safe, unsafe, transitive-unsafe, recursive, reporting, and CLI behavior through automated tests.
+- [ ] **RPRT-01**: User receives a JSON manifest describing the analysis and retained snapshots.
+- [ ] **RPRT-02**: User receives a readable Markdown timeline of retained transformations.
+- [ ] **RPRT-03**: User receives each retained IR snapshot as a numbered `.ll` file.
+- [ ] **RPRT-04**: User sees a concise terminal summary with the report location.
 
-### Transformation
+### Quality
 
-- [ ] **TRNS-01**: User can transform approved loops with `#pragma omp target teams distribute parallel for`.
-- [ ] **TRNS-02**: User receives a transformed `.c` file while original source text remains unchanged.
-- [ ] **TRNS-03**: Rejected and unsupported loops are never modified.
-- [ ] **TRNS-04**: User can preview transformations through a dry-run or manifest before using the output.
-
-### Profitability, Validation, and Demo
-
-- [ ] **PROF-01**: User can see a deterministic profitability decision based on loop-trip and work heuristics.
-- [ ] **PROF-02**: User can explicitly override the profitability rejection for experimentation.
-- [ ] **VALD-01**: User can compile-check transformed code when a compatible OpenMP toolchain is available.
-- [ ] **DEMO-01**: User can open a self-contained HTML explanation generated from an existing analysis report.
-- [ ] **DEMO-02**: User can inspect a pre-generated example without requiring GPU hardware.
+- [ ] **QUAL-01**: User can follow README instructions to analyze the included example.
+- [ ] **QUAL-02**: Maintainer can verify parser, filtering, reporting, CLI validation, and local Clang integration through automated tests.
 
 ## v2 Requirements
 
-### Advanced Analysis
+### Explanation
 
-- **ADVN-01**: User can analyze multiple translation units.
-- **ADVN-02**: User can use richer alias and dependence analysis for more pointer-heavy loops.
-- **ADVN-03**: User can target CUDA or HIP directly.
+- **EXPL-01**: User can see plain-English descriptions for common LLVM passes.
+- **EXPL-02**: User can see line-addition and line-removal counts between comparable snapshots.
+- **EXPL-03**: User can inspect a unified diff for a selected transformation.
+
+### Visualization
+
+- **VIS-01**: User can open a generated report in a local browser timeline.
+- **VIS-02**: User can select a pass and compare adjacent IR in two panes.
+- **VIS-03**: User can filter transformations by function or pass name.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Arbitrary C parallelization | Requires production-grade alias, dependence, and control-flow analysis |
-| ML profitability predictor | Needs a trustworthy benchmark dataset and makes the project harder to explain |
-| Public compilation service | Requires untrusted-code sandboxing |
-| Guaranteed GPU execution on macOS | The local toolchain may not provide an OpenMP target runtime |
-| Automatic transformation of ambiguous code | Conservative rejection protects correctness |
+| AI optimization recommendations | Requires training/evaluation and weakens the simple deterministic story |
+| GPU/OpenCL support | Hardware-dependent and belongs to different problem statements |
+| Arbitrary language frontends | C provides enough examples for the MVP |
+| Public compilation service | Requires sandboxing untrusted code |
+| Custom LLVM passes | The project explains existing passes rather than implementing an optimizer |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INPT-01 | Phase 1 | Pending |
-| INPT-02 | Phase 1 | Pending |
-| INPT-03 | Phase 1 | Pending |
-| INPT-04 | Phase 1 | Pending |
-| ANLY-01 | Phase 1 | Pending |
-| ANLY-02 | Phase 1 | Pending |
-| ANLY-03 | Phase 1 | Pending |
-| ANLY-04 | Phase 1 | Pending |
-| ANLY-05 | Phase 1 | Pending |
-| CLSF-01 | Phase 1 | Pending |
-| CLSF-02 | Phase 1 | Pending |
-| CLSF-03 | Phase 1 | Pending |
+| INPUT-01 | Phase 1 | Pending |
+| INPUT-02 | Phase 1 | Pending |
+| INPUT-03 | Phase 1 | Pending |
+| CAPT-01 | Phase 1 | Pending |
+| CAPT-02 | Phase 1 | Pending |
+| CAPT-03 | Phase 1 | Pending |
+| CAPT-04 | Phase 1 | Pending |
 | RPRT-01 | Phase 1 | Pending |
 | RPRT-02 | Phase 1 | Pending |
+| RPRT-03 | Phase 1 | Pending |
+| RPRT-04 | Phase 1 | Pending |
 | QUAL-01 | Phase 1 | Pending |
-| TRNS-01 | Phase 2 | Pending |
-| TRNS-02 | Phase 2 | Pending |
-| TRNS-03 | Phase 2 | Pending |
-| TRNS-04 | Phase 2 | Pending |
-| PROF-01 | Phase 3 | Pending |
-| PROF-02 | Phase 3 | Pending |
-| VALD-01 | Phase 3 | Pending |
-| DEMO-01 | Phase 3 | Pending |
-| DEMO-02 | Phase 3 | Pending |
+| QUAL-02 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 24 total
-- Mapped to phases: 24
+- v1 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-10*
-*Last updated: 2026-09-10 after the P05 scope pivot*
+*Last updated: 2026-09-10 after initial definition*
