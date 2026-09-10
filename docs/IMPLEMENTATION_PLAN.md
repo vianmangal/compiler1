@@ -1,89 +1,111 @@
-# IRis Implementation Plan
+# LoopLift Implementation Plan
 
 ## Architecture
 
 ```text
-C source file
-    ↓
-CLI validation
-    ↓
-Clang runner (`-O1 -mllvm -print-after-all`)
-    ↓ stderr pass dump
-Snapshot parser
-    ↓ structured snapshots
-Change filter (per IR scope)
-    ↓ retained transformations
-Report writer
-    ├── manifest.json
-    ├── timeline.md
-    └── snapshots/*.ll
+C source
+  ↓
+Clang JSON AST frontend
+  ↓
+Program model ── functions, calls, loops, source locations
+  ↓
+Interprocedural summary engine
+  ├── global writes
+  ├── pointer mutation risk
+  ├── external/unknown calls
+  └── transitive callee safety
+  ↓
+Loop safety classifier
+  ├── safe
+  ├── unsafe
+  └── unsupported
+  ↓
+JSON / Markdown report
+  ↓ Phase 2
+OpenMP target source rewriter
 ```
 
-The Phase 1 implementation is one Python package with no service, database, or runtime dependency beyond Python and Clang.
+## Phase 1 — Interprocedural Safety Analyzer
 
-## Phase 1 — CLI Transformation Pipeline
+**Goal:** Prove the hard compiler-analysis claim using a real Clang AST and explainable conservative decisions.
 
-**Goal:** Deliver a working end-to-end analyzer that converts a C file into an inspectable LLVM pass timeline.
+### Deliverables
 
-### Work items
+1. Python package and `looplift analyze` CLI.
+2. Safe Clang discovery and JSON AST invocation.
+3. AST traversal helpers that tolerate absent optional fields.
+4. Program model for functions, calls, loops, and source locations.
+5. Direct function-effect summaries.
+6. Call-graph propagation for transitive unsafety and recursion.
+7. Canonical-loop recognition and loop safety classification.
+8. Stable reason codes with short explanations.
+9. JSON and Markdown reports.
+10. Safe/unsafe examples, README, unit tests, and real-Clang smoke test.
 
-1. Scaffold a Python package, module entry point, and console command.
-2. Add input validation and safe Clang discovery/execution.
-3. Parse LLVM `IR Dump After ...` sections into typed snapshots.
-4. Retain only changed snapshots within the same function/module scope.
-5. Write JSON, Markdown, and LLVM IR artifacts using stable filenames.
-6. Add a small loop example, user documentation, and standard-library tests.
-7. Run unit tests and a real local-Clang smoke test.
+### Planned modules
 
-### Acceptance checks
+| Module | Responsibility |
+|--------|----------------|
+| `looplift/clang_frontend.py` | Validate source, find Clang, invoke AST dump, decode errors |
+| `looplift/model.py` | Dataclasses/enums for program facts and decisions |
+| `looplift/ast_utils.py` | Generic traversal, node lookup, names, ranges, offsets |
+| `looplift/analyzer.py` | Function discovery, direct effects, calls, loop facts |
+| `looplift/interprocedural.py` | Transitive safety propagation and call-chain evidence |
+| `looplift/classifier.py` | Conservative loop decision rules |
+| `looplift/report.py` | JSON and Markdown artifacts |
+| `looplift/cli.py` | User arguments, orchestration, terminal output, exit codes |
 
-- One command analyzes `examples/loop.c`.
-- The result identifies ordered pass names and their scopes.
-- Repeated unchanged IR does not flood the report.
-- The output directory can be removed and regenerated safely by choosing a new or overwrite-enabled destination.
-- Errors identify the failed precondition or compiler diagnostic.
+### Phase 1 acceptance checks
 
-## Phase 2 — Explain and Compare
+- A safe `out[i] = square(in[i])` loop is approved when `square` only computes from scalar inputs.
+- A loop calling a helper that writes a global is rejected.
+- A loop calling a helper that calls another global-writing helper is rejected with the transitive chain.
+- A loop with unsupported control flow is not approved.
+- Reports contain no loop without a decision and reason/evidence.
 
-**Goal:** Help non-experts understand what each retained transformation did.
+## Phase 2 — OpenMP Target Rewriter
 
-### Work items
+**Goal:** Turn approved analysis results into an automatic, reviewable GPGPU-oriented source transformation.
 
-- Compute line-level additions and removals for comparable snapshots.
-- Add a small curated pass-description catalog.
-- Generate unified diff artifacts.
-- Add pass/function filters and report summary totals.
+### Deliverables
 
-## Phase 3 — Visual Timeline
+- `looplift transform` command.
+- Offset-based insertion of `#pragma omp target teams distribute parallel for`.
+- No-op behavior for rejected/unsupported loops.
+- Transformed source and manifest.
+- Compile/syntax check and rewrite tests.
 
-**Goal:** Turn generated reports into a polished hackathon demonstration.
+## Phase 3 — Profitability, Validation, and Demo
 
-### Work items
+**Goal:** Avoid silly offloads and present LoopLift as a polished, evidence-driven hackathon project.
 
-- Build a local single-page report viewer.
-- Add a clickable pass timeline and side-by-side IR panes.
-- Highlight added and removed lines.
-- Package a pre-generated demonstration report and a short presentation flow.
+### Deliverables
+
+- Deterministic trip-count/work heuristic with override flag.
+- Optional OpenMP compile-check adapter.
+- HTML report generated from `analysis.json`.
+- Pre-generated examples and a four-minute demo script.
 
 ## Technical Choices
 
 | Area | Choice | Reason |
 |------|--------|--------|
-| Language | Python 3.10+ | Fast to build, portable, easy for faculty to follow |
-| Compiler interface | Clang subprocess | Uses the real LLVM pipeline without linking LLVM libraries |
-| Data model | Dataclasses | Clear typed structures with no dependency |
-| Report format | JSON + Markdown + `.ll` | Machine-readable and immediately inspectable |
-| Tests | `unittest` | Included with Python; no setup burden |
-| Phase 3 UI | Static local web page | Sufficient for demo; no backend framework required |
+| Language | Python 3.10+ | Fast implementation and faculty-readable code |
+| Frontend | Clang JSON AST | Real compiler structure without LLVM library bindings |
+| Parallel target | OpenMP target directive | Standard source-level GPU offload with minimal backend work |
+| Policy | Conservative allowlist | Safer and more defensible than guessing about aliases/effects |
+| Storage | JSON + Markdown files | Transparent, portable, no database |
+| Tests | `unittest` | No third-party test dependency |
 
 ## Verification Strategy
 
-- Fixture tests for parser banner variants and malformed input.
-- Unit tests for per-scope change filtering and filename sanitization.
-- Temporary-directory tests for complete report output.
-- CLI tests for validation and exit codes.
-- Conditional smoke test with the locally discovered Clang executable.
+- Hand-sized AST fixtures for deterministic unit tests.
+- Unit tests for traversal, summaries, cycles, transitive call-chain evidence, and decision rules.
+- Temporary-directory tests for JSON/Markdown report output.
+- CLI error-path tests.
+- Conditional integration tests against discovered local Clang.
+- Phase 2 golden-file tests to prove rejected loops are byte-for-byte unchanged.
 
-## Deliberate Simplicity
+## Complexity Guardrails
 
-The first release does not select arbitrary pass pipelines, execute user binaries, interpret optimization profitability, or support GPU/MLIR flows. Those features would expand the project beyond the simple explainability story that makes P01 attractive.
+LoopLift will not attempt general alias analysis, polyhedral optimization, multi-file linking, CUDA code generation, or learned profitability. A conservative rejection is an expected and explainable result, not a failure.
