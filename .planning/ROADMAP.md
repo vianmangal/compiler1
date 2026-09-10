@@ -22,7 +22,10 @@ LoopLift proves the most important compiler claim first: safe interprocedural re
 3. A canonical map-style loop calling a pure local helper is approved, while global mutation, ambiguous pointer effects, unknown calls, unsupported control flow, and recursive cycles are conservatively rejected.
 4. Unsafety propagates through multiple local helper calls and the report shows the relevant call chain and stable reason code.
 5. JSON, Markdown, terminal output, examples, and automated tests collectively demonstrate every Phase 1 requirement.
-**Plans:** TBD
+**Plans:**
+- Wave 1: `01-01` — package, model, AST utilities, and Clang frontend
+- Wave 2 *(blocked on Wave 1)*: `01-02` — direct/transitive analysis and loop classification
+- Wave 3 *(blocked on Wave 2)*: `01-03` — reports, CLI, examples, documentation, and integration tests
 
 ### Phase 2: OpenMP Target Rewriter
 **Goal:** Users can automatically produce reviewable C source with OpenMP GPU-offload directives on approved loops and no changes to rejected loops.
@@ -51,6 +54,6 @@ LoopLift proves the most important compiler claim first: safe interprocedural re
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Interprocedural Safety Analyzer | 0/TBD | Not started | - |
+| 1. Interprocedural Safety Analyzer | 0/3 | Planned | - |
 | 2. OpenMP Target Rewriter | 0/TBD | Not started | - |
 | 3. Profitability, Validation, and Demo | 0/TBD | Not started | - |
