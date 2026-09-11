@@ -86,95 +86,121 @@ def build():
     story.append(Paragraph("Subject: Compiler Design Lab", styles["CoverInfo"]))
     story.append(PageBreak())
 
-    # Page 2: project need and boundaries.
+    # Page 2: introduction and project definition.
     add_section(
-        story, styles, "1. Abstract",
-        "This project is a simple educational tool that shows how LLVM optimization passes change a C program. It runs Clang, collects LLVM IR snapshots, removes repeated unchanged output, and produces a short transformation report. This helps students understand the compiler optimization pipeline step by step.",
+        story, styles, "Abstract",
+        "This project is a simple educational tool that shows how LLVM optimization passes change a C program. It collects LLVM IR snapshots, removes repeated output, and produces a short transformation report for students.",
+    )
+    add_section(
+        story, styles, "1. Introduction",
+        "Modern compilers perform many internal optimization steps before producing machine code. These steps are difficult to observe in normal compilation. <b>Motivation:</b> making the intermediate stages visible helps students learn and explain optimization. <b>Scope:</b> the first version supports small C files and a local Clang compiler. It does not execute input programs, modify LLVM, use AI, require a GPU, or need a server or database.",
     )
     add_section(
         story, styles, "2. Problem Statement",
-        "LLVM can print the result of its optimization passes, but the raw output is long and difficult to follow. Students need a small tool that organizes this output and clearly shows which pass changed the program.",
+        "LLVM can print the result of individual optimization passes, but the raw output is long and difficult to follow. A compact analyzer is needed to organize the output and show only the passes that meaningfully changed the program.",
     )
-    add_section(
-        story, styles, "3. Motivation",
-        "Compiler optimization is often taught using only the original program and the final output. The analyzer exposes the intermediate stages, making the process easier to learn, explain, and demonstrate.",
-    )
-    story.append(Paragraph("4. Objectives", styles["Heading"]))
+    story.append(Paragraph("3. Objectives", styles["Heading"]))
     add_bullets(story, styles, [
-        "Accept one small C source file.",
-        "Run Clang with LLVM pass output enabled.",
+        "Accept one small C source file and run Clang safely.",
         "Extract the pass name, scope, order, and LLVM IR.",
         "Remove consecutive unchanged snapshots.",
-        "Generate a manifest, timeline, and numbered IR files.",
-        "Show clear error messages when input or compilation fails.",
+        "Generate a readable timeline, manifest, and numbered IR files.",
+        "Provide clear errors for invalid input or compilation failure.",
     ])
     story.append(Spacer(1, 2 * mm))
     add_section(
-        story, styles, "5. Scope",
-        "The first version supports small C programs and a local Clang compiler. It creates reports offline. It does not execute the input program, modify LLVM passes, use AI, require a GPU, or use a web server or database.",
+        story, styles, "4. Background Study",
+        "Clang converts C source into LLVM Intermediate Representation. LLVM then runs an ordered pass pipeline. Passes may simplify instructions, remove dead code, improve loops, or clean control flow. LLVM can print IR after each pass, but the dump must be parsed and organized before it is useful for learning.",
     )
     story.append(PageBreak())
 
-    # Page 3: compiler concepts and approach.
-    add_section(
-        story, styles, "6. Background Study",
-        "Clang converts C source code into LLVM Intermediate Representation, or LLVM IR. LLVM then runs a sequence of optimization passes. A pass may simplify instructions, remove dead code, improve loops, or clean control flow. LLVM can print IR after each pass, but this output must be organized before it is easy to study.",
-    )
-    story.append(Paragraph("7. Compiler Design Concepts Involved", styles["Heading"]))
-    add_bullets(story, styles, [
-        "Intermediate Representation: LLVM IR is the program form between source code and machine code.",
-        "Optimization Pass: a compiler stage that analyzes or transforms the program.",
-        "Pass Pipeline: the ordered sequence of compiler passes.",
-        "Function and Module Scope: snapshots are compared only within the same scope.",
-        "Dead Code Elimination and Simplification: common changes visible in the saved IR.",
-    ])
-    story.append(Spacer(1, 3 * mm))
-    story.append(Paragraph("8. Proposed Methodology", styles["Heading"]))
-    add_bullets(story, styles, [
-        "Check that the input is an existing C file and locate Clang.",
-        "Run Clang safely as a subprocess at optimization level O1.",
-        "Parse each IR dump into a structured snapshot.",
-        "Compare snapshots and retain only meaningful changes.",
-        "Write the transformation timeline and LLVM IR files.",
-        "Test the parser, compiler boundary, report output, and command line.",
-    ])
-    story.append(PageBreak())
-
-    # Page 4: design, stack, feasibility, and current prototype.
-    story.append(Paragraph("9. System Architecture", styles["Heading"]))
-    story.append(Spacer(1, 2 * mm))
+    # Page 3: system, method, concepts, and implementation.
+    story.append(Paragraph("5. System Design", styles["Heading"]))
+    story.append(Spacer(1, 4 * mm))
     story.append(Paragraph(
         "C Source  -&gt;  Clang  -&gt;  IR Parser  -&gt;  Change Filter  -&gt;  Report",
         styles["Flow"],
     ))
+    add_bullets(story, styles, [
+        "Clang Runner: validates input and captures LLVM pass output.",
+        "IR Parser: converts dump blocks into structured snapshots.",
+        "Change Filter: removes consecutive unchanged snapshots per scope.",
+        "Report Writer: produces JSON, Markdown, and .ll files.",
+    ])
     story.append(Paragraph(
-        "The complete system is one local Python pipeline. It does not need a database, login, backend service, or internet connection.",
+        "<b>Data flow and workflow:</b> the C path enters the runner, raw pass output moves to the parser, filtered snapshots move to the report writer, and the user opens the generated timeline.",
         styles["Body"],
     ))
     story.append(Spacer(1, 3 * mm))
 
-    story.append(Paragraph("10. Technology Stack", styles["Heading"]))
+    story.append(Paragraph("6. Methodology", styles["Heading"]))
     add_bullets(story, styles, [
-        "Python 3.10 or newer for the analyzer.",
-        "Clang and LLVM for the real compiler pipeline.",
-        "Command-line interface for simple use.",
-        "JSON, Markdown, and .ll files for the report.",
-        "Python unittest for automated testing.",
+        "Check the source file and locate Clang.",
+        "Run Clang at optimization level O1 without using a shell.",
+        "Parse each IR dump and compare snapshots within the same scope.",
+        "Retain meaningful changes and write the final report.",
+        "Verify each module using automated tests and a real Clang smoke test.",
+    ])
+    story.append(Spacer(1, 2 * mm))
+
+    story.append(Paragraph("7. Compiler Design Concepts Used", styles["Heading"]))
+    add_bullets(story, styles, [
+        "Intermediate code: LLVM IR represents the program between source and machine code.",
+        "Optimization passes: ordered stages analyze or transform the IR.",
+        "Parsing: pass banners and IR blocks are converted into structured data.",
+        "Function and module scope: unrelated snapshots are not compared.",
+        "Dead-code elimination and simplification: common transformations visible in reports.",
     ])
     story.append(Spacer(1, 2 * mm))
 
     add_section(
-        story, styles, "11. Innovation and Feasibility",
-        "The analyzer converts a large expert-oriented compiler dump into a small timeline containing only meaningful changes. The project is practical because it uses Python and Clang, needs no dataset or special hardware, and handles a clearly limited input scope.",
+        story, styles, "8. Implementation",
+        "Major modules cover the data model, parser, change filter, compiler runner, command-line interface, and report writer. The algorithm parses ordered snapshots, compares them by scope, and retains only meaningful changes.",
     )
-    story.append(Paragraph("12. Initial Prototype", styles["Heading"]))
+    add_section(
+        story, styles, "Technology Stack",
+        "Python 3.10 or newer and its standard library are used for the analyzer and tests. Clang and LLVM provide the compiler pipeline. The interface is command-line based, and output is stored as JSON, Markdown, and LLVM .ll files.",
+    )
+    story.append(PageBreak())
+
+    # Page 4: validation, outcome, next work, and supporting material.
+    story.append(Paragraph("9. Testing and Results", styles["Heading"]))
     add_bullets(story, styles, [
-        "LLVM snapshot model and pass-dump parser completed.",
-        "Unchanged-snapshot filtering completed.",
-        "Safe Clang discovery and execution boundary completed.",
-        "Twenty-one automated tests currently pass.",
-        "Next step: connect the command line and final report writer.",
+        "Parser tests check valid, repeated, and malformed pass dumps.",
+        "Compiler tests check discovery, safe command creation, and failure messages.",
+        "Expected result: ordered snapshots with unchanged entries removed.",
+        "Current result: snapshot parsing, filtering, and the Clang boundary are complete; 21 automated tests pass.",
+        "Pending result: command-line and final report integration will complete the initial version.",
     ])
+    story.append(Spacer(1, 2 * mm))
+
+    add_section(
+        story, styles, "10. Conclusion",
+        "The proposed analyzer makes a real LLVM optimization pipeline easier to understand. Its narrow C input scope and local design keep it technically useful, safe, and achievable for a student project.",
+    )
+
+    story.append(Paragraph("11. Future Enhancements", styles["Heading"]))
+    add_bullets(story, styles, [
+        "Show line-by-line differences between adjacent IR snapshots.",
+        "Add simple descriptions for common optimization passes.",
+        "Provide filters by function or pass name.",
+        "Add a small local visual timeline after the command-line version is complete.",
+    ])
+    story.append(Spacer(1, 2 * mm))
+
+    story.append(Paragraph("12. References", styles["Heading"]))
+    add_bullets(story, styles, [
+        "LLVM Project, LLVM Language Reference Manual.",
+        "LLVM Project, Using the New Pass Manager.",
+        "Clang Project, Clang Compiler User's Manual.",
+        "Keith Cooper and Linda Torczon, Engineering a Compiler.",
+    ])
+    story.append(Spacer(1, 2 * mm))
+
+    add_section(
+        story, styles, "13. Appendix",
+        "Prototype command: python -m analyzer analyze examples/loop.c. Expected output files are manifest.json, timeline.md, and numbered LLVM IR snapshots inside a report directory.",
+    )
 
     document.build(story)
     print(OUTPUT.resolve())
