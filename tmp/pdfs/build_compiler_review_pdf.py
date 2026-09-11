@@ -7,7 +7,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 
-OUTPUT = Path("output/pdf/IRis_Phase_1_Project_Proposal.pdf")
+OUTPUT = Path("output/pdf/LLVM_Pass_Transformation_Analyzer_Proposal.pdf")
 
 
 def add_section(story, styles, title, text):
@@ -31,7 +31,7 @@ def build():
         topMargin=22 * mm,
         bottomMargin=22 * mm,
         title="LLVM Pass Transformation Analyzer",
-        author="Vian",
+        author="Vian Mangal",
         subject="Compiler Design Lab",
     )
 
@@ -81,7 +81,7 @@ def build():
     story.append(Spacer(1, 42 * mm))
     story.append(Paragraph("TOPIC", styles["CoverLabel"]))
     story.append(Paragraph("LLVM Pass Transformation Analyzer", styles["CoverTopic"]))
-    story.append(Paragraph("Name: Vian", styles["CoverInfo"]))
+    story.append(Paragraph("Name: Vian Mangal", styles["CoverInfo"]))
     story.append(Paragraph("Register Number: 24BAI0134", styles["CoverInfo"]))
     story.append(Paragraph("Subject: Compiler Design Lab", styles["CoverInfo"]))
     story.append(PageBreak())
@@ -89,7 +89,7 @@ def build():
     # Page 2: project need and boundaries.
     add_section(
         story, styles, "1. Abstract",
-        "IRis is a simple educational tool that shows how LLVM optimization passes change a C program. It runs Clang, collects LLVM IR snapshots, removes repeated unchanged output, and produces a short transformation report. This helps students understand the compiler optimization pipeline step by step.",
+        "This project is a simple educational tool that shows how LLVM optimization passes change a C program. It runs Clang, collects LLVM IR snapshots, removes repeated unchanged output, and produces a short transformation report. This helps students understand the compiler optimization pipeline step by step.",
     )
     add_section(
         story, styles, "2. Problem Statement",
@@ -97,7 +97,7 @@ def build():
     )
     add_section(
         story, styles, "3. Motivation",
-        "Compiler optimization is often taught using only the original program and the final output. IRis exposes the intermediate stages, making the process easier to learn, explain, and demonstrate.",
+        "Compiler optimization is often taught using only the original program and the final output. The analyzer exposes the intermediate stages, making the process easier to learn, explain, and demonstrate.",
     )
     story.append(Paragraph("4. Objectives", styles["Heading"]))
     add_bullets(story, styles, [
@@ -165,7 +165,7 @@ def build():
 
     add_section(
         story, styles, "11. Innovation and Feasibility",
-        "IRis converts a large expert-oriented compiler dump into a small timeline containing only meaningful changes. The project is practical because it uses Python and Clang, needs no dataset or special hardware, and handles a clearly limited input scope.",
+        "The analyzer converts a large expert-oriented compiler dump into a small timeline containing only meaningful changes. The project is practical because it uses Python and Clang, needs no dataset or special hardware, and handles a clearly limited input scope.",
     )
     story.append(Paragraph("12. Initial Prototype", styles["Heading"]))
     add_bullets(story, styles, [
