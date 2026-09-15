@@ -4,19 +4,18 @@ Work-in-progress project backup for Vian Mangal (24BAI0134).
 
 ## Saved work
 
-- `main`: project planning, requirements, implementation plans, and the four-page LLVM Pass Transformation Analyzer proposal in `output/pdf/`.
-- `codex/iris-phase1`: LLVM analyzer prototype, including its parser, compiler integration, fixtures, and 21 passing unit tests.
+All current work is consolidated on `main`: the LLVM Pass Transformation Analyzer prototype, matching P01 planning, requirements, implementation plans, and the four-page proposal in `output/pdf/`.
 
-The default branch currently contains LoopLift/P05 planning, while the proposal and prototype cover the earlier LLVM/P01 direction. Both versions are preserved separately; they have not been merged or aligned.
+The prototype includes LLVM snapshot parsing, compiler integration, fixtures, and 21 unit tests. Earlier LoopLift/P05 planning remains recoverable through Git history rather than a separate branch.
 
 Phase 1 and Review 1 are not yet fully complete. The prototype still needs its CLI, report output, and end-to-end demonstration.
 
 ## Prototype tests
 
-On `codex/iris-phase1`, run:
+Run from the repository root:
 
 ```sh
 python3 -m unittest discover -s tests -v
 ```
 
-See `docs/PRD.md`, `docs/IMPLEMENTATION_PLAN.md`, and `.planning/` on each branch for that version's scope and progress.
+See `docs/PRD.md`, `docs/IMPLEMENTATION_PLAN.md`, and `.planning/` for scope and progress.

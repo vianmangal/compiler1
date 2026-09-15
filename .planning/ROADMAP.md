@@ -1,59 +1,55 @@
-# Roadmap: LoopLift
+# Roadmap: IRis
 
 ## Overview
 
-LoopLift proves the most important compiler claim first: safe interprocedural reasoning across helper calls. Once that evidence is trustworthy, the project adds a narrow OpenMP GPU-offload rewrite and then a simple profitability/validation/demo layer.
+IRis progresses from a complete command-line analyzer that proves the core explainable-compiler workflow, through richer explanations and comparisons, to a lightweight visual timeline for the hackathon demonstration. Phase 1 is the v1 MVP and covers every current v1 requirement; Phases 2 and 3 organize the explicitly deferred v2 capabilities.
 
 ## Phases
 
-- [ ] **Phase 1: Interprocedural Safety Analyzer** - Parse Clang ASTs, build call/effect summaries, and explain which loops are safe candidates.
-- [ ] **Phase 2: OpenMP Target Rewriter** - Automatically insert GPU-offload directives for approved loops only.
-- [ ] **Phase 3: Profitability, Validation, and Demo** - Avoid poor offloads, validate generated code where possible, and present the evidence clearly.
+- [ ] **Phase 1: CLI Transformation Pipeline** - Analyze a C file end to end and emit a deterministic, inspectable LLVM transformation report.
+- [ ] **Phase 2: Explain and Compare** - Make retained transformations understandable through descriptions, metrics, diffs, and filters.
+- [ ] **Phase 3: Visual Timeline** - Present generated reports as an interactive local-browser demonstration.
 
 ## Phase Details
 
-### Phase 1: Interprocedural Safety Analyzer
-**Goal:** Users can analyze a C file and receive a conservative, explainable parallelization decision for every discovered loop, including hazards reached through helper-function calls.
-**Depends on:** Nothing (first phase)
-**Requirements:** INPT-01, INPT-02, INPT-03, INPT-04, ANLY-01, ANLY-02, ANLY-03, ANLY-04, ANLY-05, CLSF-01, CLSF-02, CLSF-03, RPRT-01, RPRT-02, QUAL-01
+### Phase 1: CLI Transformation Pipeline
+**Goal**: Users can run one command to convert a local C file into a trustworthy timeline of the LLVM passes that changed its IR.
+**Depends on**: Nothing (first phase)
+**Requirements**: INPUT-01, INPUT-02, INPUT-03, CAPT-01, CAPT-02, CAPT-03, CAPT-04, RPRT-01, RPRT-02, RPRT-03, RPRT-04, QUAL-01, QUAL-02
 **Success Criteria** (what must be TRUE):
-1. User can run one command on a valid C file and LoopLift obtains a real JSON AST from discovered or explicitly selected Clang without executing the program.
-2. Output identifies functions, direct call edges, each `for` loop's function/line, and direct effect facts.
-3. A canonical map-style loop calling a pure local helper is approved, while global mutation, ambiguous pointer effects, unknown calls, unsupported control flow, and recursive cycles are conservatively rejected.
-4. Unsafety propagates through multiple local helper calls and the report shows the relevant call chain and stable reason code.
-5. JSON, Markdown, terminal output, examples, and automated tests collectively demonstrate every Phase 1 requirement.
-**Plans:**
-- Wave 1: `01-01` — package, model, AST utilities, and Clang frontend
-- Wave 2 *(blocked on Wave 1)*: `01-02` — direct/transitive analysis and loop classification
-- Wave 3 *(blocked on Wave 2)*: `01-03` — reports, CLI, examples, documentation, and integration tests
+  1. User can analyze an existing `.c` file from the command line with the discovered Clang executable or an explicit Clang override.
+  2. User receives a clear, non-zero error when the source path, extension, toolchain, or compilation is invalid.
+  3. User can run Clang's LLVM `-O1` pipeline and inspect ordered pass names, IR scopes, and IR bodies, with unchanged consecutive snapshots filtered per scope and retained output bounded by a configurable cap.
+  4. User receives a deterministic report containing `manifest.json`, a readable Markdown timeline, numbered `.ll` snapshots, and a concise terminal summary that identifies the report location.
+  5. A first-time user can follow the README to analyze the included example, while a maintainer can verify parsing, filtering, reporting, CLI validation, and local-Clang integration through automated tests.
+**Plans**: TBD
 
-### Phase 2: OpenMP Target Rewriter
-**Goal:** Users can automatically produce reviewable C source with OpenMP GPU-offload directives on approved loops and no changes to rejected loops.
+### Phase 2: Explain and Compare
+**Goal**: Users can understand what changed at each retained transformation without needing prior knowledge of LLVM passes.
 **Mode:** mvp
-**Depends on:** Phase 1
-**Requirements:** TRNS-01, TRNS-02, TRNS-03, TRNS-04
+**Depends on**: Phase 1
+**Requirements**: EXPL-01, EXPL-02, EXPL-03, VIS-03 (v2, deferred)
 **Success Criteria** (what must be TRUE):
-1. `looplift transform` inserts `#pragma omp target teams distribute parallel for` immediately before every approved loop selected from Phase 1 analysis.
-2. Original source remains unchanged and rejected/unsupported loops are byte-for-byte unmodified in generated output.
-3. User can preview the planned edits and inspect a transformation manifest before using the output.
-**Plans:** TBD
+  1. User can see a plain-English description when a retained transformation is produced by a common LLVM pass.
+  2. User can see line-addition and line-removal counts and inspect a unified diff between comparable snapshots.
+  3. User can filter retained transformations by function or pass name to focus the report on relevant changes.
+**Plans**: TBD
 
-### Phase 3: Profitability, Validation, and Demo
-**Goal:** Users can avoid obviously poor offloads, validate generated source when supported, and present LoopLift's decisions without requiring GPU hardware.
+### Phase 3: Visual Timeline
+**Goal**: Users can explore an existing IRis report as a polished local-browser timeline suitable for a short hackathon demonstration.
 **Mode:** mvp
-**Depends on:** Phase 2
-**Requirements:** PROF-01, PROF-02, VALD-01, DEMO-01, DEMO-02
+**Depends on**: Phase 2
+**Requirements**: VIS-01, VIS-02 (v2, deferred)
 **Success Criteria** (what must be TRUE):
-1. Every approved safety candidate receives a deterministic profitability result and users can override a rejection for experimentation.
-2. LoopLift compile-checks transformed source when a compatible OpenMP toolchain is configured and reports unavailable toolchains honestly.
-3. A self-contained HTML report and pre-generated example demonstrate analysis evidence and transformation output without GPU hardware.
-**Plans:** TBD
-**UI hint:** yes
+  1. User can open a generated IRis report in a local browser and navigate its transformation timeline without rerunning Clang.
+  2. User can select a pass and compare adjacent IR snapshots side by side with added and removed lines visually distinguished.
+**Plans**: TBD
+**UI hint**: yes
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Interprocedural Safety Analyzer | 0/3 | Planned | - |
-| 2. OpenMP Target Rewriter | 0/TBD | Not started | - |
-| 3. Profitability, Validation, and Demo | 0/TBD | Not started | - |
+| 1. CLI Transformation Pipeline | 0/TBD | Not started | - |
+| 2. Explain and Compare | 0/TBD | Not started | - |
+| 3. Visual Timeline | 0/TBD | Not started | - |
