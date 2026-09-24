@@ -1,0 +1,15 @@
+*** IR Dump After InstCombinePass on main ***
+; ModuleID = 'events.c'
+define i32 @main() {
+  ret i32 1
+}
+*** IR Pass PassManager<Function> on main ignored ***
+diagnostic text outside a dump
+*** IR Dump After LoopDeletionPass on main ***
+; ModuleID = 'events.c'
+define i32 @main() {
+  ret i32 2
+}
+; *** IR Pass LoopDeletionPass invalidated ***
+*** IR Dump After NoOpPass on main omitted because no change ***
+*** IR Pass NoOpPass on main ignored ***

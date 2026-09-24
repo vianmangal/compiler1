@@ -17,6 +17,9 @@ _CHANGED_BANNER_RE = re.compile(
     r"^\s*;?\s*\*{3,}\s*IR Dump After\s+(?P<pass_name>.+?)\s+on\s+"
     r"(?P<scope>.+?)\s*\*{3,}\s*$"
 )
+_IR_EVENT_BANNER_RE = re.compile(
+    r"^\s*;?\s*\*{3,}\s*IR (?:Dump|Pass)\b.*\*{3,}\s*$", re.MULTILINE
+)
 
 
 def changed_event_identities(dump_text: str) -> list[tuple[str, str]]:
@@ -85,6 +88,8 @@ class LocalClangIntegrationTests(unittest.TestCase):
                 artifact = report / snapshot["file"]
                 self.assertTrue(artifact.is_file())
                 self.assertEqual(artifact.parent, report / "snapshots")
+                artifact_text = artifact.read_text(encoding="utf-8")
+                self.assertNotRegex(artifact_text, _IR_EVENT_BANNER_RE)
 
             self.assertIn("-print-changed", manifest["command"])
             raw_capture = subprocess.run(

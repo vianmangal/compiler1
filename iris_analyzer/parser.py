@@ -12,8 +12,8 @@ _AFTER_BANNER_RE = re.compile(
     r"^\s*;?\s*\*{3,}\s*IR Dump After\s+(?P<pass_name>.+?)\s+on\s+"
     r"(?P<scope>.+?)\s*\*{3,}\s*$"
 )
-_DUMP_BOUNDARY_RE = re.compile(
-    r"^\s*;?\s*\*{3,}\s*IR Dump (?:Before|After)\b.*\*{3,}\s*$"
+_IR_EVENT_BOUNDARY_RE = re.compile(
+    r"^\s*;?\s*\*{3,}\s*IR (?:Dump|Pass)\b.*\*{3,}\s*$"
 )
 
 
@@ -68,7 +68,7 @@ def parse_ir_dumps(dump_text: str) -> list[IRSnapshot]:
             scope = after_match.group("scope").strip()
             continue
 
-        if _DUMP_BOUNDARY_RE.match(line):
+        if _IR_EVENT_BOUNDARY_RE.match(line):
             finish_section()
             continue
 

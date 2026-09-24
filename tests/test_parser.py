@@ -114,6 +114,34 @@ class ParseIRDumpsTests(unittest.TestCase):
             [("Annotation2MetadataPass", "[module]"), ("InstCombinePass", "main")],
         )
 
+    def test_pass_event_banners_terminate_active_dump_sections(self) -> None:
+        dump_text = (FIXTURES / "clang_ir_pass_events.txt").read_text(
+            encoding="utf-8"
+        )
+
+        snapshots = parse_ir_dumps(dump_text)
+
+        self.assertEqual(
+            [(snapshot.pass_name, snapshot.scope) for snapshot in snapshots],
+            [("InstCombinePass", "main"), ("LoopDeletionPass", "main")],
+        )
+        self.assertEqual(
+            [snapshot.ir for snapshot in snapshots],
+            [
+                "; ModuleID = 'events.c'\n"
+                "define i32 @main() {\n"
+                "  ret i32 1\n"
+                "}\n",
+                "; ModuleID = 'events.c'\n"
+                "define i32 @main() {\n"
+                "  ret i32 2\n"
+                "}\n",
+            ],
+        )
+        for snapshot in snapshots:
+            self.assertNotIn("*** IR ", snapshot.ir)
+            self.assertNotIn("diagnostic text", snapshot.ir)
+
 
 class NormalizeIRTests(unittest.TestCase):
     def test_normalizes_line_endings_and_trailing_whitespace(self) -> None:
