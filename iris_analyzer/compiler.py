@@ -51,6 +51,8 @@ def run_optimization_pipeline(source: Path, clang_path: Path) -> CompilerOutput:
         "-emit-llvm",
         "-mllvm",
         "-print-changed",
+        "-mllvm",
+        "-print-module-scope",
         str(resolved_source),
         "-o",
         os.devnull,
