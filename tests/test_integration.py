@@ -20,6 +20,7 @@ _CHANGED_BANNER_RE = re.compile(
 _IR_EVENT_BANNER_RE = re.compile(
     r"^\s*;?\s*\*{3,}\s*IR (?:Dump|Pass)\b.*\*{3,}\s*$", re.MULTILINE
 )
+_MAX_VALIDATION_DIAGNOSTIC_CHARS = 4_000
 
 
 def changed_event_identities(dump_text: str) -> list[tuple[str, str]]:
@@ -90,8 +91,32 @@ class LocalClangIntegrationTests(unittest.TestCase):
                 self.assertEqual(artifact.parent, report / "snapshots")
                 artifact_text = artifact.read_text(encoding="utf-8")
                 self.assertNotRegex(artifact_text, _IR_EVENT_BANNER_RE)
+                validation = subprocess.run(
+                    [
+                        manifest["clang"],
+                        "-x",
+                        "ir",
+                        "-S",
+                        "-emit-llvm",
+                        str(artifact),
+                        "-o",
+                        os.devnull,
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                diagnostic = validation.stderr[:_MAX_VALIDATION_DIAGNOSTIC_CHARS]
+                self.assertEqual(
+                    validation.returncode,
+                    0,
+                    f"snapshot is not valid standalone LLVM IR: {artifact}\n"
+                    f"{diagnostic}",
+                )
 
             self.assertIn("-print-changed", manifest["command"])
+            self.assertIn("-print-module-scope", manifest["command"])
             raw_capture = subprocess.run(
                 manifest["command"],
                 capture_output=True,

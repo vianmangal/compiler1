@@ -5,7 +5,7 @@ IRis is a small compiler-design lab project that shows which LLVM optimization p
 ## Requirements
 
 - Python 3.10 or newer
-- Clang available as `clang` on `PATH`
+- Clang available as `clang` on `PATH` with LLVM's `-print-changed` and `-print-module-scope` instrumentation
 - No third-party Python packages
 
 Check the compiler with:
@@ -53,7 +53,7 @@ loop-iris-report/
 
 - `manifest.json` records the source, compiler, exact command, counts, cap, truncation state, and snapshot metadata.
 - `timeline.md` lists retained transformations in order with links to their LLVM IR.
-- `snapshots/*.ll` contains one numbered file for each retained transformation.
+- `snapshots/*.ll` contains one numbered, complete LLVM module for each retained transformation; each file can be parsed independently by the selected Clang.
 
 IRis never deletes or overwrites a non-empty output directory. Choose a new directory or empty the old one yourself before regenerating a report.
 
