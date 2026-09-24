@@ -86,7 +86,7 @@ class RunOptimizationPipelineTests(unittest.TestCase):
             "-S",
             "-emit-llvm",
             "-mllvm",
-            "-print-after-all",
+            "-print-changed",
             str(self.source.resolve()),
             "-o",
             os.devnull,
@@ -130,6 +130,22 @@ class RunOptimizationPipelineTests(unittest.TestCase):
         self.assertIn("exit code 2", message)
         self.assertIn("fatal: invalid source", message)
         self.assertLess(len(message), 5_000)
+
+    def test_explains_missing_changed_pass_instrumentation(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=self.expected_command,
+            returncode=1,
+            stdout=None,
+            stderr=(
+                "clang (LLVM option parsing): Unknown command line argument "
+                "'-print-changed'"
+            ),
+        )
+        with patch("iris_analyzer.compiler.subprocess.run", return_value=completed):
+            with self.assertRaisesRegex(
+                CompilerError, "does not support.*-print-changed"
+            ):
+                run_optimization_pipeline(self.source, self.clang)
 
     def test_maps_timeout_to_distinguishable_domain_error(self) -> None:
         with patch(

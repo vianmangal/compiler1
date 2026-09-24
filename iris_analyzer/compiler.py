@@ -35,7 +35,7 @@ def resolve_clang(override: str | None) -> Path:
 
 
 def run_optimization_pipeline(source: Path, clang_path: Path) -> CompilerOutput:
-    """Run Clang's real O1 pipeline and capture its pass dump from stderr."""
+    """Run Clang's O1 pipeline with changed-pass instrumentation enabled."""
 
     resolved_clang = clang_path.expanduser().resolve()
     resolved_source = source.expanduser().resolve()
@@ -45,7 +45,7 @@ def run_optimization_pipeline(source: Path, clang_path: Path) -> CompilerOutput:
         "-S",
         "-emit-llvm",
         "-mllvm",
-        "-print-after-all",
+        "-print-changed",
         str(resolved_source),
         "-o",
         os.devnull,
@@ -71,6 +71,15 @@ def run_optimization_pipeline(source: Path, clang_path: Path) -> CompilerOutput:
 
     if completed.returncode != 0:
         diagnostic = _bounded_diagnostic(completed.stderr)
+        if "print-changed" in diagnostic and (
+            "Unknown command line argument" in diagnostic
+            or "unknown argument" in diagnostic.lower()
+        ):
+            raise CompilerError(
+                "This Clang does not support the required LLVM "
+                "-print-changed instrumentation; select a compatible Clang "
+                "with --clang"
+            )
         raise CompilerError(
             f"Clang failed with exit code {completed.returncode}: {diagnostic}"
         )

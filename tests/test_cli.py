@@ -14,18 +14,11 @@ from iris_analyzer.model import CompilerOutput
 
 
 PASS_DUMP = """\
-*** IR Dump After BaselinePass on sum ***
-define i32 @sum() {
-  ret i32 0
-}
 *** IR Dump After ChangePass on sum ***
 define i32 @sum() {
   ret i32 1
 }
-*** IR Dump After NoOpPass on sum ***
-define i32 @sum() {
-  ret i32 1
-}
+*** IR Dump After NoOpPass on sum omitted because no change ***
 *** IR Dump After FinalPass on sum ***
 define i32 @sum() {
   ret i32 2
@@ -139,7 +132,7 @@ class MainTests(unittest.TestCase):
         run.assert_called_once_with(self.source.resolve(), self.clang.resolve())
 
         manifest = json.loads((self.output / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["captured_count"], 4)
+        self.assertEqual(manifest["captured_count"], 2)
         self.assertEqual(manifest["retained_count"], 1)
         self.assertEqual(manifest["max_snapshots"], 1)
         self.assertTrue(manifest["truncated"])

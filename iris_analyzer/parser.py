@@ -28,7 +28,13 @@ def normalize_ir(ir: str) -> str:
 
 
 def parse_ir_dumps(dump_text: str) -> list[IRSnapshot]:
-    """Extract well-formed ``IR Dump After`` sections in stream order."""
+    """Extract changed ``IR Dump After`` sections in stream order.
+
+    The compiler boundary requests LLVM's ``-print-changed`` output. Banners
+    explicitly marked ``omitted because no change`` are boundaries, never
+    transformations, so only dumps LLVM itself classified as changed become
+    snapshots.
+    """
 
     snapshots: list[IRSnapshot] = []
     pass_name: str | None = None
@@ -56,6 +62,8 @@ def parse_ir_dumps(dump_text: str) -> list[IRSnapshot]:
         after_match = _AFTER_BANNER_RE.match(line)
         if after_match:
             finish_section()
+            if " omitted because no change" in line:
+                continue
             pass_name = after_match.group("pass_name").strip()
             scope = after_match.group("scope").strip()
             continue
@@ -74,7 +82,7 @@ def parse_ir_dumps(dump_text: str) -> list[IRSnapshot]:
 def retain_changed(
     snapshots: Iterable[IRSnapshot], max_snapshots: int
 ) -> tuple[list[IRSnapshot], bool]:
-    """Retain changed states after the first per-scope baseline.
+    """Cap snapshots that LLVM has already classified as changed.
 
     The returned boolean is true only when at least one changed snapshot exists
     beyond the requested cap.
@@ -83,18 +91,9 @@ def retain_changed(
     if max_snapshots <= 0:
         raise ValueError("max_snapshots must be positive")
 
-    previous_by_scope: dict[str, str] = {}
     retained: list[IRSnapshot] = []
-
     for snapshot in snapshots:
-        normalized = normalize_ir(snapshot.ir)
-        previous = previous_by_scope.get(snapshot.scope)
-        previous_by_scope[snapshot.scope] = normalized
-
-        if previous is None or previous == normalized:
-            continue
         if len(retained) == max_snapshots:
             return retained, True
         retained.append(snapshot)
-
     return retained, False

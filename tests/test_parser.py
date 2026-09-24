@@ -136,30 +136,27 @@ class RetainChangedTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.snapshots = [
-            self.snapshot(1, "BaselineA", "a", "ret i32 1\n"),
-            self.snapshot(2, "BaselineB", "b", "ret i32 9\n"),
-            self.snapshot(3, "NoChangeA", "a", "ret i32 1  \r\n"),
-            self.snapshot(4, "ChangeB", "b", "ret i32 10\n"),
-            self.snapshot(5, "ChangeA", "a", "ret i32 2\n"),
-            self.snapshot(6, "NoChangeB", "b", "ret i32 10\n"),
+            self.snapshot(1, "FirstChangeA", "a", "ret i32 1\n"),
+            self.snapshot(2, "ChangeB", "b", "ret i32 9\n"),
+            self.snapshot(3, "SecondChangeA", "a", "ret i32 2\n"),
         ]
 
-    def test_filters_independently_per_scope_and_preserves_global_order(self) -> None:
+    def test_keeps_first_changed_event_and_preserves_global_order(self) -> None:
         retained, truncated = retain_changed(self.snapshots, max_snapshots=10)
 
-        self.assertEqual([snapshot.order for snapshot in retained], [4, 5])
+        self.assertEqual([snapshot.order for snapshot in retained], [1, 2, 3])
         self.assertFalse(truncated)
 
     def test_caps_changed_snapshots_and_reports_actual_truncation(self) -> None:
         retained, truncated = retain_changed(self.snapshots, max_snapshots=1)
 
-        self.assertEqual([snapshot.order for snapshot in retained], [4])
+        self.assertEqual([snapshot.order for snapshot in retained], [1])
         self.assertTrue(truncated)
 
     def test_exact_cap_is_not_reported_as_truncated(self) -> None:
-        retained, truncated = retain_changed(self.snapshots[:4], max_snapshots=1)
+        retained, truncated = retain_changed(self.snapshots[:1], max_snapshots=1)
 
-        self.assertEqual([snapshot.order for snapshot in retained], [4])
+        self.assertEqual([snapshot.order for snapshot in retained], [1])
         self.assertFalse(truncated)
 
     def test_requires_a_positive_cap(self) -> None:
@@ -167,6 +164,29 @@ class RetainChangedTests(unittest.TestCase):
             with self.subTest(invalid=invalid):
                 with self.assertRaisesRegex(ValueError, "positive"):
                     retain_changed(self.snapshots, max_snapshots=invalid)
+
+    def test_parser_excludes_omitted_events_across_interleaved_scopes(self) -> None:
+        dump_text = """\
+*** IR Dump After NoOpModulePass on [module] omitted because no change ***
+*** IR Dump After FirstFunctionChange on (main) ***
+define i32 @main() { ret i32 1 }
+*** IR Dump After LaterNoOpFunctionPass on (main) omitted because no change ***
+*** IR Dump After LoopChangePass on loop %for.body in function main ***
+define i32 @main() { ret i32 2 }
+*** IR Dump After FollowingNoOpModulePass on [module] omitted because no change ***
+"""
+
+        snapshots = parse_ir_dumps(dump_text)
+        retained, truncated = retain_changed(snapshots, max_snapshots=10)
+
+        self.assertEqual(
+            [(item.pass_name, item.scope) for item in retained],
+            [
+                ("FirstFunctionChange", "(main)"),
+                ("LoopChangePass", "loop %for.body in function main"),
+            ],
+        )
+        self.assertFalse(truncated)
 
 
 if __name__ == "__main__":
