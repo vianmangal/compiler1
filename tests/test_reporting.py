@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from iris_analyzer.model import CompilerOutput, IRSnapshot
 from iris_analyzer.reporting import sanitize_component, write_report
@@ -165,6 +166,31 @@ class WriteReportTests(unittest.TestCase):
 
             self.assertEqual(sentinel.read_text(encoding="utf-8"), "do not replace\n")
             self.assertEqual(list(destination.iterdir()), [sentinel])
+
+    def test_write_failure_never_publishes_a_partial_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory)
+            for existing in (False, True):
+                with self.subTest(existing=existing):
+                    destination = parent / f"report-{existing}"
+                    if existing:
+                        destination.mkdir()
+
+                    with patch(
+                        "iris_analyzer.reporting._write_text",
+                        side_effect=OSError("disk full"),
+                    ):
+                        with self.assertRaisesRegex(OSError, "disk full"):
+                            self.write(destination)
+
+                    if existing:
+                        self.assertTrue(destination.is_dir())
+                        self.assertEqual(list(destination.iterdir()), [])
+                    else:
+                        self.assertFalse(destination.exists())
+                    self.assertEqual(
+                        list(parent.glob(f".{destination.name}.staging-*")), []
+                    )
 
 
 if __name__ == "__main__":

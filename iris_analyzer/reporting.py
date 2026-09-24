@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 import json
+import os
 from pathlib import Path
 import re
+import shutil
+import tempfile
 import unicodedata
 
 from .model import CompilerOutput, IRSnapshot, ReportPaths
@@ -42,15 +45,58 @@ def write_report(
     """Persist one complete analysis without overwriting a non-empty directory."""
 
     root = destination.expanduser().resolve()
-    if root.exists():
-        if not root.is_dir():
-            raise ValueError(f"report destination is not a directory: {root}")
-        if any(root.iterdir()):
-            raise ValueError(f"report destination is not empty: {root}")
-    else:
-        root.mkdir(parents=True)
+    _validate_destination(root)
+    root.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{root.name}.staging-", dir=root.parent)
+    )
 
-    retained = list(snapshots)
+    try:
+        _write_report_tree(
+            root=staging,
+            source=source,
+            compiler_output=compiler_output,
+            captured_count=captured_count,
+            snapshots=list(snapshots),
+            max_snapshots=max_snapshots,
+            truncated=truncated,
+        )
+        _publish_report(staging, root)
+    except Exception:
+        if staging.exists():
+            shutil.rmtree(staging)
+        raise
+
+    return ReportPaths(
+        root=root,
+        manifest=root / "manifest.json",
+        timeline=root / "timeline.md",
+        snapshots_dir=root / "snapshots",
+    )
+
+
+def _validate_destination(root: Path) -> None:
+    if not root.exists():
+        return
+    if not root.is_dir():
+        raise ValueError(f"report destination is not a directory: {root}")
+    if any(root.iterdir()):
+        raise ValueError(f"report destination is not empty: {root}")
+
+
+def _write_report_tree(
+    *,
+    root: Path,
+    source: Path,
+    compiler_output: CompilerOutput,
+    captured_count: int,
+    snapshots: list[IRSnapshot],
+    max_snapshots: int,
+    truncated: bool,
+) -> None:
+    """Write a complete report into an unpublished staging directory."""
+
+    retained = snapshots
     snapshots_dir = root / "snapshots"
     snapshots_dir.mkdir()
 
@@ -109,12 +155,22 @@ def write_report(
     ]
     _write_text(timeline, "\n".join(timeline_lines).rstrip() + "\n")
 
-    return ReportPaths(
-        root=root,
-        manifest=manifest,
-        timeline=timeline,
-        snapshots_dir=snapshots_dir,
-    )
+
+def _publish_report(staging: Path, root: Path) -> None:
+    """Atomically publish a staged report on the destination filesystem."""
+
+    removed_empty_destination = False
+    if root.exists():
+        _validate_destination(root)
+        root.rmdir()
+        removed_empty_destination = True
+
+    try:
+        os.replace(staging, root)
+    except OSError:
+        if removed_empty_destination and not root.exists():
+            root.mkdir()
+        raise
 
 
 def _write_text(path: Path, content: str) -> None:
