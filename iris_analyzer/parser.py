@@ -9,11 +9,11 @@ from .model import IRSnapshot
 
 
 _AFTER_BANNER_RE = re.compile(
-    r"^\*{3,}\s*IR Dump After\s+(?P<pass_name>.+?)\s+on\s+"
+    r"^\s*;?\s*\*{3,}\s*IR Dump After\s+(?P<pass_name>.+?)\s+on\s+"
     r"(?P<scope>.+?)\s*\*{3,}\s*$"
 )
 _DUMP_BOUNDARY_RE = re.compile(
-    r"^\*{3,}\s*IR Dump (?:Before|After)\b.*\*{3,}\s*$"
+    r"^\s*;?\s*\*{3,}\s*IR Dump (?:Before|After)\b.*\*{3,}\s*$"
 )
 
 

@@ -94,6 +94,26 @@ class ParseIRDumpsTests(unittest.TestCase):
     def test_empty_input_has_no_snapshots(self) -> None:
         self.assertEqual(parse_ir_dumps("ordinary diagnostic\n"), [])
 
+    def test_accepts_real_clang_comment_prefixed_banners(self) -> None:
+        dump_text = (
+            "; *** IR Dump After Annotation2MetadataPass on [module] ***\n"
+            "; ModuleID = 'input.c'\n"
+            "define i32 @main() {\n"
+            "  ret i32 0\n"
+            "}\n"
+            "; *** IR Dump After InstCombinePass on main ***\n"
+            "define i32 @main() {\n"
+            "  ret i32 1\n"
+            "}\n"
+        )
+
+        snapshots = parse_ir_dumps(dump_text)
+
+        self.assertEqual(
+            [(snapshot.pass_name, snapshot.scope) for snapshot in snapshots],
+            [("Annotation2MetadataPass", "[module]"), ("InstCombinePass", "main")],
+        )
+
 
 class NormalizeIRTests(unittest.TestCase):
     def test_normalizes_line_endings_and_trailing_whitespace(self) -> None:
