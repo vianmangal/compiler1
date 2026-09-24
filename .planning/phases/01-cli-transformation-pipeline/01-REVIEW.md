@@ -1,6 +1,6 @@
 ---
 phase: 01-cli-transformation-pipeline
-reviewed: 2026-09-24T05:34:12Z
+reviewed: 2026-09-24T11:00:07Z
 depth: standard
 files_reviewed: 14
 files_reviewed_list:
@@ -20,79 +20,54 @@ files_reviewed_list:
   - tests/test_reporting.py
 findings:
   critical: 1
-  warning: 3
+  warning: 0
   info: 0
-  total: 4
+  total: 1
 status: issues_found
 ---
 
 # Phase 1: Code Review Report
 
-**Reviewed:** 2026-09-24T05:34:12Z
+**Reviewed:** 2026-09-24T11:00:07Z
 **Depth:** standard
 **Files Reviewed:** 14
 **Status:** issues_found
 
 ## Summary
 
-The CLI, report writer, compiler boundary, parser, example, and all automated tests were reviewed. The 40-test suite passes, including the local-Clang integration test, but a real trace demonstrates that the central changed-pass timeline is not trustworthy: the same-scope comparison attributes changes made by intervening nested passes to later no-op passes and discards the first real change observed for every textual scope. Three additional robustness and test-reliability issues should also be corrected.
+All four findings from the previous review were checked against the fixed implementation. CR-01 is resolved by LLVM's `-print-changed` classification, WR-01 by bounded temporary-file capture, WR-02 by staged atomic publication, and WR-03 by exact real-Clang event assertions. The complete 44-test suite passes, including the real local-Clang integration test.
+
+The fixes introduced or exposed one remaining correctness defect: LLVM's non-dump pass-manager event banners are copied into some generated `.ll` snapshots. The checked-in example reproduces this on the installed Apple Clang, so Phase 1 still emits invalid IR artifacts despite reporting the correct changed-pass identities.
 
 ## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01 [BLOCKER]: Same-scope snapshots do not identify which pass caused a change
+### CR-01 [BLOCKER]: Pass-manager event banners corrupt generated LLVM IR snapshots
 
-**File:** `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/parser.py:86-98`
+**File:** `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/parser.py:15-16,71-76`
 
-**Related:** `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/compiler.py:42-52`, `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/cli.py:108-111`
+**Related:** `/Users/vian/Documents/ChatGPT/compiler-lab/tests/test_integration.py:84-103`
 
-**Issue:** `retain_changed` compares the current dump with the last dump carrying the same scope label, not with the IR immediately before that pass ran. LLVM interleaves module, function, and loop pass dumps. A function pass can therefore mutate a function between two `[module]` dumps; the next module pass is then reported as the cause even when that module pass made no change. The first snapshot for every textual scope is also always discarded, even if that first pass changed the IR. Scope spelling changes such as `main` versus `(main)` make the false-negative/false-positive behavior worse.
+**Issue:** The parser ends an active snapshot only for `IR Dump Before` or `IR Dump After` banners. LLVM's `-print-changed` stream also emits boundaries such as `*** IR Pass PassManager<Function> on sum_squares ignored ***` and `*** IR Pass LoopDeletionPass invalidated ***`. When one follows a changed dump, lines 75-76 append that banner to the active snapshot as if it were LLVM IR. This is reproducible with `examples/loop.c`: 2 of the 21 parsed snapshots contain `*** IR Pass ... ignored ***`, including the `LCSSAPass` snapshot. Those `.ll` files are not valid LLVM IR and cannot be reliably inspected, assembled, or used for later source/IR comparisons. The integration test misses the defect because it validates only manifest identities and file existence, not snapshot contents.
 
-This is reproducible with the checked-in `examples/loop.c` on Apple Clang 21. The generated report claims that `OpenMPOptPass`, `AlwaysInlinerPass`, `DeadArgumentEliminationPass`, and `HotColdSplittingPass` changed the program, while the same compiler's `-mllvm -print-changed` output marks those passes as “omitted because no change.” Conversely, `InlinerPass on (main)` is marked changed by Clang but is discarded as that scope's baseline; the following unchanged `PostOrderFunctionAttrsPass on (main)` is reported instead. This violates the project's core promise to show which passes actually changed the IR.
-
-**Fix:** Capture each pass's own before/after state or use LLVM's changed-pass instrumentation when supported. Do not infer causality from non-adjacent snapshots sharing a scope label. For example, capability-detect `-mllvm -print-changed`, parse only non-omitted `IR Dump After` sections, and cap those already-classified changes directly:
+**Fix:** Treat every LLVM pass-manager event banner as a section boundary while continuing to open snapshots only for changed `IR Dump After` banners. Add both a parser regression fixture and a real-Clang assertion that no generated `.ll` artifact contains an event banner. For example:
 
 ```python
-changed = parse_changed_dumps(compiler_output.dump_text)
-retained = changed[:max_snapshots]
-truncated = len(changed) > max_snapshots
+_IR_EVENT_BOUNDARY_RE = re.compile(
+    r"^\s*;?\s*\*{3,}\s*IR (?:Dump|Pass)\b.*\*{3,}\s*$"
+)
+
+# after handling _AFTER_BANNER_RE
+if _IR_EVENT_BOUNDARY_RE.match(line):
+    finish_section()
+    continue
 ```
 
-For toolchains without `-print-changed`, request paired `-print-before-all` and `-print-after-all` dumps and compare the before/after pair for the same pass invocation. Add regression coverage for nested module/function/loop interleaving and for the first changed event in a scope.
-
-## Warnings
-
-### WR-01 [WARNING]: The snapshot cap does not bound compiler-output memory
-
-**File:** `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/compiler.py:54-63`
-
-**Related:** `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/parser.py:30-71`, `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/cli.py:108-111`
-
-**Issue:** `subprocess.run(..., stderr=PIPE, text=True)` buffers the entire `-print-after-all` stream, `parse_ir_dumps` then materializes every complete IR snapshot, and only afterward does `retain_changed` apply `--max-snapshots`. Because `-print-after-all` repeats large IR bodies for many passes, a valid but larger C input can exhaust memory before either the 30-second timeout or the retention cap provides protection. Even failure diagnostics are bounded only after all stderr has already been captured.
-
-**Fix:** Stream stderr with `subprocess.Popen`, parse dump boundaries incrementally, and enforce a hard byte/snapshot-input ceiling. Continue draining or terminate the compiler cleanly once the limit is exceeded, then raise a readable `CompilerError`. Using `-print-changed` for CR-01 will reduce output volume but should not replace an explicit byte bound.
-
-### WR-02 [WARNING]: A failed write leaves a poisoned, non-empty report directory
-
-**File:** `/Users/vian/Documents/ChatGPT/compiler-lab/iris_analyzer/reporting.py:44-110`
-
-**Issue:** `write_report` creates the destination and `snapshots/` before writing artifacts one by one. If a snapshot, manifest, or timeline write fails because of an I/O error, encoding error, or exhausted disk, the CLI returns an error but leaves a partial non-empty directory. Retrying the same command then fails the non-empty-directory guard, and consumers may mistake the partial directory for a completed report.
-
-**Fix:** Build the complete report in a temporary sibling directory and publish it only after every file succeeds, using a same-filesystem rename/replace that preserves the existing empty/non-empty destination policy. Always remove the staging directory on failure. Add an injected-write-failure test asserting that no partial report is published.
-
-### WR-03 [WARNING]: The passing tests do not verify pass attribution
-
-**File:** `/Users/vian/Documents/ChatGPT/compiler-lab/tests/test_parser.py:137-163`
-
-**Related:** `/Users/vian/Documents/ChatGPT/compiler-lab/tests/test_integration.py:51-67`
-
-**Issue:** The parser test models scopes as independent strings and therefore encodes the flawed assumption behind CR-01. The real-Clang test asserts only that at least two entries and their files exist. It passes even though the produced timeline contains multiple confirmed no-op passes and omits a confirmed changed pass, so the suite cannot verify the project's core value.
-
-**Fix:** Add a regression fixture containing paired before/after or changed/omitted pass events across interleaved module, function, and loop scopes. Assert the exact changed-event identities, including the first changed event for a scope and exclusion of a no-op module pass following a changed function pass. Keep the integration assertions version-tolerant by deriving the expected changed events from the selected compiler's supported changed-pass output rather than hard-coding a complete pass list.
+The regression should cover `ignored` and `invalidated` `IR Pass` variants and assert that each retained snapshot contains only parseable IR text.
 
 ---
 
-_Reviewed: 2026-09-24T05:34:12Z_
+_Reviewed: 2026-09-24T11:00:07Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
