@@ -59,6 +59,6 @@ IRis progresses from a complete command-line analyzer that proves the core expla
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. CLI Transformation Pipeline | 2/2 | Complete   | 2026-09-24 |
+| 1. CLI Transformation Pipeline | 3/3 | Complete   | 2026-09-24 |
 | 2. Explain and Compare | 0/TBD | Not started | - |
 | 3. Visual Timeline | 0/TBD | Not started | - |

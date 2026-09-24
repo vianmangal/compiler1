@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-09-24T04:49:33.140Z"
-last_activity: 2026-09-24 -- Completed Phase 01 Plan 02; phase verification pending
+status: verifying
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-09-24T16:08:17.381Z"
+last_activity: 2026-09-24 -- Completed Phase 01 Plan 03; phase re-verification pending
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 33
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-10)
 ## Current Position
 
 Phase: 01 (cli-transformation-pipeline) — PLANS COMPLETE
-Plan: 2 of 2
+Plan: 3 of 3
 Status: Awaiting phase verification
-Last activity: 2026-09-24 -- Completed Phase 01 Plan 02
+Last activity: 2026-09-24 -- Completed Phase 01 Plan 03; phase re-verification pending
 
 Phase plan progress: [██████████] 100%
 
@@ -36,19 +36,19 @@ Phase plan progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 2
-- Average duration: 6.5 min
-- Total execution time: 13 min
+- Total plans completed: 3
+- Average duration: 7.3 min
+- Total execution time: 22 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| Phase 01 | 2 | 13 min | 6.5 min |
+| Phase 01 | 3 | 22 min | 7.3 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 5 min, 8 min
+- Last 5 plans: 5 min, 8 min, 9 min
 - Trend: Phase 1 plans complete
 
 *Updated after each plan completion*
@@ -66,6 +66,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Reject non-empty report destinations instead of deleting or overwriting user files.
 - [Phase 01]: Use a positive global retained-snapshot cap while keeping per-scope change comparison.
 - [Phase 01]: Accept LLVM comment-prefixed pass-dump banners for installed Clang compatibility.
+- [Phase 01]: Preserve changed-pass selection and add module-scope printing at the compiler boundary so reports contain complete LLVM modules. — Fixes incomplete artifacts at their source without changing parsing or report contracts.
+- [Phase 01]: Validate every numbered snapshot with the exact resolved Clang recorded in the manifest. — Keeps the artifact proof tied to the toolchain that generated the report.
 
 ### Pending Todos
 
@@ -97,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-24T04:49:33.096Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-09-24T16:08:17.377Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
