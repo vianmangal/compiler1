@@ -87,6 +87,8 @@ class RunOptimizationPipelineTests(unittest.TestCase):
             "-emit-llvm",
             "-mllvm",
             "-print-changed",
+            "-mllvm",
+            "-print-module-scope",
             str(self.source.resolve()),
             "-o",
             os.devnull,
