@@ -6,7 +6,7 @@ IRis progresses from a complete command-line analyzer that proves the core expla
 
 ## Phases
 
-- [ ] **Phase 1: CLI Transformation Pipeline** - Analyze a C file end to end and emit a deterministic, inspectable LLVM transformation report.
+- [x] **Phase 1: CLI Transformation Pipeline** - Analyze a C file end to end and emit a deterministic, inspectable LLVM transformation report. (completed 2026-09-24)
 - [ ] **Phase 2: Explain and Compare** - Make retained transformations understandable through descriptions, metrics, diffs, and filters.
 - [ ] **Phase 3: Visual Timeline** - Present generated reports as an interactive local-browser demonstration.
 
@@ -59,6 +59,6 @@ IRis progresses from a complete command-line analyzer that proves the core expla
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. CLI Transformation Pipeline | 1/2 | In Progress|  |
+| 1. CLI Transformation Pipeline | 2/2 | Complete   | 2026-09-24 |
 | 2. Explain and Compare | 0/TBD | Not started | - |
 | 3. Visual Timeline | 0/TBD | Not started | - |

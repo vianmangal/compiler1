@@ -7,28 +7,28 @@
 
 ### Input and Toolchain
 
-- [ ] **INPUT-01**: User can analyze one existing C source file from the command line.
-- [ ] **INPUT-02**: User receives a clear error when the source path, extension, or Clang toolchain is invalid.
-- [ ] **INPUT-03**: User can override the Clang executable used for analysis.
+- [x] **INPUT-01**: User can analyze one existing C source file from the command line.
+- [x] **INPUT-02**: User receives a clear error when the source path, extension, or Clang toolchain is invalid.
+- [x] **INPUT-03**: User can override the Clang executable used for analysis.
 
 ### Transformation Capture
 
-- [ ] **CAPT-01**: User can run the source through Clang's LLVM `-O1` optimization pipeline.
-- [ ] **CAPT-02**: User can see the ordered pass name, IR scope, and IR body for captured dumps.
-- [ ] **CAPT-03**: User sees only changed consecutive snapshots within each IR scope.
-- [ ] **CAPT-04**: User can cap the number of retained snapshots for predictable report size.
+- [x] **CAPT-01**: User can run the source through Clang's LLVM `-O1` optimization pipeline.
+- [x] **CAPT-02**: User can see the ordered pass name, IR scope, and IR body for captured dumps.
+- [x] **CAPT-03**: User sees only changed consecutive snapshots within each IR scope.
+- [x] **CAPT-04**: User can cap the number of retained snapshots for predictable report size.
 
 ### Reporting
 
-- [ ] **RPRT-01**: User receives a JSON manifest describing the analysis and retained snapshots.
-- [ ] **RPRT-02**: User receives a readable Markdown timeline of retained transformations.
-- [ ] **RPRT-03**: User receives each retained IR snapshot as a numbered `.ll` file.
-- [ ] **RPRT-04**: User sees a concise terminal summary with the report location.
+- [x] **RPRT-01**: User receives a JSON manifest describing the analysis and retained snapshots.
+- [x] **RPRT-02**: User receives a readable Markdown timeline of retained transformations.
+- [x] **RPRT-03**: User receives each retained IR snapshot as a numbered `.ll` file.
+- [x] **RPRT-04**: User sees a concise terminal summary with the report location.
 
 ### Quality
 
-- [ ] **QUAL-01**: User can follow README instructions to analyze the included example.
-- [ ] **QUAL-02**: Maintainer can verify parser, filtering, reporting, CLI validation, and local Clang integration through automated tests.
+- [x] **QUAL-01**: User can follow README instructions to analyze the included example.
+- [x] **QUAL-02**: Maintainer can verify parser, filtering, reporting, CLI validation, and local Clang integration through automated tests.
 
 ## v2 Requirements
 
@@ -58,21 +58,22 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INPUT-01 | Phase 1 | Pending |
-| INPUT-02 | Phase 1 | Pending |
-| INPUT-03 | Phase 1 | Pending |
-| CAPT-01 | Phase 1 | Pending |
-| CAPT-02 | Phase 1 | Pending |
-| CAPT-03 | Phase 1 | Pending |
-| CAPT-04 | Phase 1 | Pending |
-| RPRT-01 | Phase 1 | Pending |
-| RPRT-02 | Phase 1 | Pending |
-| RPRT-03 | Phase 1 | Pending |
-| RPRT-04 | Phase 1 | Pending |
-| QUAL-01 | Phase 1 | Pending |
-| QUAL-02 | Phase 1 | Pending |
+| INPUT-01 | Phase 1 | Complete |
+| INPUT-02 | Phase 1 | Complete |
+| INPUT-03 | Phase 1 | Complete |
+| CAPT-01 | Phase 1 | Complete |
+| CAPT-02 | Phase 1 | Complete |
+| CAPT-03 | Phase 1 | Complete |
+| CAPT-04 | Phase 1 | Complete |
+| RPRT-01 | Phase 1 | Complete |
+| RPRT-02 | Phase 1 | Complete |
+| RPRT-03 | Phase 1 | Complete |
+| RPRT-04 | Phase 1 | Complete |
+| QUAL-01 | Phase 1 | Complete |
+| QUAL-02 | Phase 1 | Complete |
 
 **Coverage:**
+
 - v1 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0 ✓
