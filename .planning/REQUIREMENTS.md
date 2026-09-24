@@ -71,13 +71,19 @@
 | RPRT-04 | Phase 1 | Complete |
 | QUAL-01 | Phase 1 | Complete |
 | QUAL-02 | Phase 1 | Complete |
+| EXPL-01 | Phase 2 | Pending |
+| EXPL-02 | Phase 2 | Pending |
+| EXPL-03 | Phase 2 | Pending |
+| VIS-03 | Phase 2 | Pending |
+| VIS-01 | Phase 3 | Pending |
+| VIS-02 | Phase 3 | Pending |
 
 **Coverage:**
 
-- v1 requirements: 13 total
-- Mapped to phases: 13
+- requirements: 19 total (13 v1, 6 v2)
+- Mapped to phases: 19
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-10*
-*Last updated: 2026-09-10 after initial definition*
+*Last updated: 2026-09-24 after Phase 1 completion*

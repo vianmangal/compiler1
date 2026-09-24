@@ -12,13 +12,12 @@ A user can run one command and clearly see which LLVM passes changed their progr
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Analyze a local C source file using the installed or explicitly selected Clang toolchain. — Validated in Phase 1.
+- [x] Capture the LLVM passes that actually change IR and persist complete standalone LLVM snapshots. — Validated in Phase 1.
+- [x] Produce a deterministic manifest, Markdown timeline, and numbered snapshot report. — Validated in Phase 1.
 
 ### Active
 
-- [ ] Analyze a local C source file using the installed Clang toolchain.
-- [ ] Capture and retain the LLVM IR snapshots that actually change during optimization.
-- [ ] Produce a deterministic report that a user can inspect without knowing LLVM internals.
 - [ ] Explain common transformations with simple descriptions and change metrics.
 - [ ] Offer a lightweight visual timeline suitable for a short hackathon demo.
 
@@ -50,11 +49,11 @@ A user can run one command and clearly see which LLVM passes changed their progr
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Choose P01: LLVM Pass Transformation Analyzer | Lowest implementation risk while remaining a real compiler project | — Pending |
-| Name the project IRis | Short, memorable, and communicates making IR visible | — Pending |
-| Use Clang's pass dump output rather than requiring `opt` | Works with the toolchain already installed on macOS | — Pending |
-| Build a CLI before a browser UI | Proves the compiler pipeline early and keeps Phase 1 small | — Pending |
-| Compare consecutive snapshots within the same IR scope | Avoids claiming a change when dumps refer to different functions/modules | — Pending |
+| Choose P01: LLVM Pass Transformation Analyzer | Lowest implementation risk while remaining a real compiler project | Validated in Phase 1 |
+| Name the project IRis | Short, memorable, and communicates making IR visible | In use |
+| Use Clang's pass dump output rather than requiring `opt` | Works with the toolchain already installed on macOS | Validated with local Clang in Phase 1 |
+| Build a CLI before a browser UI | Proves the compiler pipeline early and keeps Phase 1 small | CLI vertical slice complete |
+| Use LLVM changed-pass instrumentation with module-scope dumps | Preserves truthful pass attribution and complete standalone IR artifacts | Validated in Phase 1 |
 
 ## Evolution
 
@@ -74,4 +73,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-10 after initialization*
+*Last updated: 2026-09-24 after Phase 1 completion*
