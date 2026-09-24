@@ -6,7 +6,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from iris_analyzer.compiler import CompilerError, resolve_clang, run_optimization_pipeline
 
@@ -92,37 +92,59 @@ class RunOptimizationPipelineTests(unittest.TestCase):
             os.devnull,
         )
 
+    class FakeProcess:
+        def __init__(self, returncode: int | None) -> None:
+            self.returncode = returncode
+            self.terminated = False
+            self.killed = False
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+        def terminate(self) -> None:
+            self.terminated = True
+            self.returncode = -15
+
+        def wait(self, timeout: int | None = None) -> int:
+            assert self.returncode is not None
+            return self.returncode
+
+        def kill(self) -> None:
+            self.killed = True
+            self.returncode = -9
+
+    def popen_result(self, stderr: str, returncode: int | None = 0):
+        process = self.FakeProcess(returncode)
+
+        def launch(*args, **kwargs):
+            stream = kwargs["stderr"]
+            stream.write(stderr.encode("utf-8"))
+            stream.flush()
+            return process
+
+        return process, launch
+
     def test_invokes_exact_safe_pipeline_and_returns_capture(self) -> None:
-        completed = subprocess.CompletedProcess(
-            args=self.expected_command,
-            returncode=0,
-            stdout=None,
-            stderr="*** IR Dump After InstCombinePass on main ***\nret i32 0\n",
-        )
-        with patch("iris_analyzer.compiler.subprocess.run", return_value=completed) as run:
+        stderr = "*** IR Dump After InstCombinePass on main ***\nret i32 0\n"
+        _, launch = self.popen_result(stderr)
+        with patch("iris_analyzer.compiler.subprocess.Popen", side_effect=launch) as popen:
             output = run_optimization_pipeline(self.source, self.clang)
 
-        run.assert_called_once_with(
+        popen.assert_called_once_with(
             self.expected_command,
             shell=False,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=30,
-            check=False,
+            stderr=ANY,
         )
         self.assertEqual(output.clang_path, self.clang.resolve())
         self.assertEqual(output.command, self.expected_command)
-        self.assertEqual(output.dump_text, completed.stderr)
+        self.assertEqual(output.dump_text, stderr)
 
     def test_maps_nonzero_exit_to_bounded_domain_error(self) -> None:
-        completed = subprocess.CompletedProcess(
-            args=self.expected_command,
-            returncode=2,
-            stdout=None,
-            stderr="fatal: invalid source\n" + ("x" * 10_000),
+        _, launch = self.popen_result(
+            "fatal: invalid source\n" + ("x" * 10_000), returncode=2
         )
-        with patch("iris_analyzer.compiler.subprocess.run", return_value=completed):
+        with patch("iris_analyzer.compiler.subprocess.Popen", side_effect=launch):
             with self.assertRaises(CompilerError) as caught:
                 run_optimization_pipeline(self.source, self.clang)
 
@@ -132,32 +154,40 @@ class RunOptimizationPipelineTests(unittest.TestCase):
         self.assertLess(len(message), 5_000)
 
     def test_explains_missing_changed_pass_instrumentation(self) -> None:
-        completed = subprocess.CompletedProcess(
-            args=self.expected_command,
+        _, launch = self.popen_result(
+            "clang (LLVM option parsing): Unknown command line argument "
+            "'-print-changed'",
             returncode=1,
-            stdout=None,
-            stderr=(
-                "clang (LLVM option parsing): Unknown command line argument "
-                "'-print-changed'"
-            ),
         )
-        with patch("iris_analyzer.compiler.subprocess.run", return_value=completed):
+        with patch("iris_analyzer.compiler.subprocess.Popen", side_effect=launch):
             with self.assertRaisesRegex(
                 CompilerError, "does not support.*-print-changed"
             ):
                 run_optimization_pipeline(self.source, self.clang)
 
     def test_maps_timeout_to_distinguishable_domain_error(self) -> None:
-        with patch(
-            "iris_analyzer.compiler.subprocess.run",
-            side_effect=subprocess.TimeoutExpired(self.expected_command, 30),
+        process = self.FakeProcess(None)
+        with (
+            patch("iris_analyzer.compiler.subprocess.Popen", return_value=process),
+            patch("iris_analyzer.compiler.time.monotonic", side_effect=[0.0, 31.0]),
         ):
             with self.assertRaisesRegex(CompilerError, "timed out after 30 seconds"):
                 run_optimization_pipeline(self.source, self.clang)
+        self.assertTrue(process.terminated)
+
+    def test_rejects_oversized_pass_output_and_stops_compiler(self) -> None:
+        process, launch = self.popen_result("x" * 33, returncode=None)
+        with (
+            patch("iris_analyzer.compiler.subprocess.Popen", side_effect=launch),
+            patch("iris_analyzer.compiler._MAX_DUMP_BYTES", 32),
+        ):
+            with self.assertRaisesRegex(CompilerError, "safety limit"):
+                run_optimization_pipeline(self.source, self.clang)
+        self.assertTrue(process.terminated)
 
     def test_maps_launch_failure_to_domain_error(self) -> None:
         with patch(
-            "iris_analyzer.compiler.subprocess.run",
+            "iris_analyzer.compiler.subprocess.Popen",
             side_effect=OSError("permission changed"),
         ):
             with self.assertRaisesRegex(CompilerError, "Could not run Clang"):
